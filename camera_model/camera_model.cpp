@@ -15,8 +15,8 @@ PinholeCameraModel::project(const Eigen::Vector3d &point_in_camera) const {
     y = point_in_camera.y() / point_in_camera.z();
   }
 
-  pt_image.x() = distorted_param_[0] * x + distorted_param_[2];
-  pt_image.y() = distorted_param_[1] * y + distorted_param_[3];
+  pt_image.x() = intrinsic_param_[0] * x + intrinsic_param_[2];
+  pt_image.y() = intrinsic_param_[1] * y + intrinsic_param_[3];
   return pt_image;
 }
 Eigen::Vector2d
@@ -54,9 +54,21 @@ Eigen::Vector2d PinholeCameraModel::projectDistorted(
   }
   pt_distorted = pointAddDistorted(Eigen::Vector2d{x, y});
 
-  pt_image.x() = distorted_param_[0] * x + distorted_param_[2];
-  pt_image.y() = distorted_param_[1] * y + distorted_param_[3];
+  pt_image.x() = intrinsic_param_[0] * x + intrinsic_param_[2];
+  pt_image.y() = intrinsic_param_[1] * y + intrinsic_param_[3];
   return pt_image;
+}
+cv::Mat
+PinholeCameraModel::undistortImage(const cv::Mat &distorted_image) const {
+  cv::Mat cameraMatrix =
+      (cv::Mat_<float>(3, 3) << intrinsic_param_[0], 0.0, intrinsic_param_[1],
+       0.0, intrinsic_param_[2], 0.0, intrinsic_param_[3], 0.0, 0.0, 1.0);
+  cv::Mat distCoeffs =
+      (cv::Mat_<float>(1, 5) << distorted_param_[0], distorted_param_[1],
+       distorted_param_[2], distorted_param_[3], distorted_param_[4]);
+  cv::Mat undistortedImage;
+  cv::undistort(distorted_image, undistortedImage, cameraMatrix, distCoeffs);
+  return undistortedImage;
 }
 
 } // namespace CameraModel
