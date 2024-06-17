@@ -78,7 +78,7 @@ PinholeCameraModel::liftPoint(const Eigen::Vector2d &point_in_img) const {
   output_pt.x() =
       (point_in_img.x() - intrinsic_param_[2]) / intrinsic_param_[0];
   output_pt.y() =
-      (point_in_img.x() - intrinsic_param_[3]) / intrinsic_param_[1];
+      (point_in_img.y() - intrinsic_param_[3]) / intrinsic_param_[1];
   return output_pt;
 }
 

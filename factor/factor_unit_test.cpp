@@ -21,11 +21,13 @@ TEST(CERES_FACTOR, CERES_FACTOR) {
   //生成生成转换
   Eigen::Matrix3d rotation =
       transform_common::eulerAngleToMatrix<double>(1.0, 1.1, 1.2);
-  Eigen::Vector3d trans{1.2, 1.3, 1.4};
+  Eigen::Quaterniond q_true =
+      transform_common::eulerAngleToQuat<double>(1.0, 1.1, 1.2);
+  Eigen::Vector3d trans_true{1.2, 1.3, 1.4};
   std::vector<data_common::Point3d2dPair> pairs;
   //生成3D-2D匹配对
   for (const auto &pt3d : pts_3d) {
-    Eigen::Vector3d pt3d_in_cam = rotation * pt3d + trans;
+    Eigen::Vector3d pt3d_in_cam = rotation * pt3d + trans_true;
     Eigen::Vector2d pt2d = cam_model->project(pt3d_in_cam);
     pairs.push_back(
         data_common::Point3d2dPair(cv::Point2d(pt2d.x(), pt2d.y()),
@@ -39,7 +41,7 @@ TEST(CERES_FACTOR, CERES_FACTOR) {
   ceres::LossFunction *loss_function = new ceres::CauchyLoss(0.5);
 
   Eigen::Quaterniond quat =
-      transform_common::eulerAngleToQuat<double>(0.9, 1.0, 1.1);
+      transform_common::eulerAngleToQuat<double>(1.2, 1.2, 1.1);
   double R_camera_ref[4];
   double trans_camera_ref[3];
   R_camera_ref[0] = quat.w();
@@ -47,8 +49,8 @@ TEST(CERES_FACTOR, CERES_FACTOR) {
   R_camera_ref[2] = quat.y();
   R_camera_ref[3] = quat.z();
 
-  trans_camera_ref[0] = 1.0;
-  trans_camera_ref[1] = 1.0;
+  trans_camera_ref[0] = 1.1;
+  trans_camera_ref[1] = 1.4;
   trans_camera_ref[2] = 1.2;
   problem.AddParameterBlock(R_camera_ref, 4, quatParam);
   problem.AddParameterBlock(trans_camera_ref, 3);
@@ -68,12 +70,19 @@ TEST(CERES_FACTOR, CERES_FACTOR) {
   ceres::Solve(options, &problem, &summary);
   std::cout << summary.BriefReport() << std::endl;
   //优化结果
-  Eigen::Map<Eigen::Quaterniond> q_rlt(R_camera_ref);
-  Eigen::Map<Eigen::Vector3d> t_rlt(trans_camera_ref);
+  Eigen::Quaterniond q_rlt{R_camera_ref[0], R_camera_ref[1], R_camera_ref[2],
+                           R_camera_ref[3]};
+  Eigen::Vector3d trans_rlt{trans_camera_ref[0], trans_camera_ref[1],
+                            trans_camera_ref[2]};
+  EXPECT_NEAR(q_true.w(), q_rlt.w(), 1e-4);
+  EXPECT_NEAR(q_true.x(), q_rlt.x(), 1e-4);
+  EXPECT_NEAR(q_true.y(), q_rlt.y(), 1e-4);
+  EXPECT_NEAR(q_true.z(), q_rlt.z(), 1e-4);
+  EXPECT_NEAR(trans_true.x(), trans_rlt.x(), 1e-4);
+  EXPECT_NEAR(trans_true.y(), trans_rlt.y(), 1e-4);
+  EXPECT_NEAR(trans_true.z(), trans_rlt.z(), 1e-4);
+
   //对比优化结果
-  std::cout << "euler:"
-            << q_rlt.toRotationMatrix().eulerAngles(2, 1, 0).transpose();
-  std::cout << "trans:" << t_rlt.transpose();
 }
 
 int main(int argc, char **argv) {
