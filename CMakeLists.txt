@@ -1,10 +1,10 @@
 cmake_minimum_required(VERSION 3.10)
 
 # 设置项目名称和版本
-project(MyProject VERSION 1.0)
+project(camera_tool VERSION 1.0)
 
 # 设置C++标准
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 # 查找OpenCV库
@@ -24,18 +24,19 @@ else()
 endif()
 
 find_package(Ceres REQUIRED)
-
-
+find_package(GTest REQUIRED)
 # 包含OpenCV头文件路径
 include_directories(${OpenCV_INCLUDE_DIRS})
 # 包含Eigen头文件路径
 include_directories(${EIGEN3_INCLUDE_DIR})
 include_directories(${CERES_INCLUDE_DIR})
-
+include_directories(${GTEST_INCLUDE_DIRS})
 
 # 添加子目录
 add_subdirectory(tools)
 add_subdirectory(camera_model)
+add_subdirectory(factor)
+add_subdirectory(common)
 
 # 指定源文件并添加可执行文件
 set(SOURCES main.cpp)

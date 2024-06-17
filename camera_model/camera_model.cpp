@@ -1,7 +1,7 @@
 
 #include "camera_model.h"
 
-namespace CameraModel {
+namespace CameraModelNS {
 
 Eigen::Vector2d
 PinholeCameraModel::project(const Eigen::Vector3d &point_in_camera) const {
@@ -58,6 +58,7 @@ Eigen::Vector2d PinholeCameraModel::projectDistorted(
   pt_image.y() = intrinsic_param_[1] * y + intrinsic_param_[3];
   return pt_image;
 }
+
 cv::Mat
 PinholeCameraModel::undistortImage(const cv::Mat &distorted_image) const {
   cv::Mat cameraMatrix =
@@ -71,4 +72,14 @@ PinholeCameraModel::undistortImage(const cv::Mat &distorted_image) const {
   return undistortedImage;
 }
 
-} // namespace CameraModel
+Eigen::Vector2d
+PinholeCameraModel::liftPoint(const Eigen::Vector2d &point_in_img) const {
+  Eigen::Vector2d output_pt;
+  output_pt.x() =
+      (point_in_img.x() - intrinsic_param_[2]) / intrinsic_param_[0];
+  output_pt.y() =
+      (point_in_img.x() - intrinsic_param_[3]) / intrinsic_param_[1];
+  return output_pt;
+}
+
+} // namespace CameraModelNS

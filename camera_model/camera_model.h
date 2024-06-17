@@ -4,7 +4,7 @@
 #include <memory>
 #include <opencv2/opencv.hpp>
 #include <vector>
-namespace CameraModel {
+namespace CameraModelNS {
 
 class CameraModel {
 public:
@@ -29,6 +29,12 @@ public:
   virtual Eigen::Vector2d
   projectDistorted(const Eigen::Vector3d &point_in_camera) const = 0;
 
+  /// @brief 点投影从像素平面转换到相机坐标下归一化平面坐标
+  /// @param point_in_img 点在像素平面下的坐标
+  /// @return 点投影相机坐标下归一化平面坐标
+  virtual Eigen::Vector2d
+  liftPoint(const Eigen::Vector2d &point_in_img) const = 0;
+
   // 图像去畸变
   virtual cv::Mat undistortImage(const cv::Mat &distorted_image) const = 0;
 
@@ -51,14 +57,16 @@ public:
   project(const Eigen::Vector3d &point_in_camera) const override;
 
   Eigen::Vector2d
-  projectDistorted(const Eigen::Vector3d &point_in_camera) const;
+  projectDistorted(const Eigen::Vector3d &point_in_camera) const override;
 
   Eigen::Vector2d pointAddDistorted(const Eigen::Vector2d &pt) const;
 
-  cv::Mat undistortImage(const cv::Mat &distorted_image) const;
+  Eigen::Vector2d liftPoint(const Eigen::Vector2d &point_in_img) const override;
+
+  cv::Mat undistortImage(const cv::Mat &distorted_image) const override;
 
 private:
   std::vector<double> distorted_param_; // k1,k2,k3,p1,p2
 };
 
-} // namespace CameraModel
+} // namespace CameraModelNS
