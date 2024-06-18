@@ -19,7 +19,7 @@ public:
   /// 将3D点根据相机模型投影到像素平面,针对于图片已经去畸变的情况,投影过程中不考虑畸变
   /// @param point_in_camera 点在相机坐标系的3D坐标(X,Y,Z)
   /// @return 点在像素平面下的2D坐标(u,v)
-  virtual Eigen::Vector2d
+  virtual Eigen::Vector2d 
   project(const Eigen::Vector3d &point_in_camera) const = 0;
 
   /// @brief
