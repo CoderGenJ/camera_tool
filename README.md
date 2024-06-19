@@ -1,5 +1,17 @@
-# My Project
-
+# CameraTool
+这个项目是关于相机的一些代码.总体目标是完成相机的标定/SFM构建marker地图/基于marker地图的多相机标定功能
+- [x] 相机标定工具
+- [ ] 相机模型
+    - [x] 针孔相机
+    - [ ] 鱼眼相机
+- [ ] PNP计算
+  - [x] 基于CERES优化
+  - [ ] 基于DLT计算
+- [ ] 基于BA的SFM构建
+- [ ] 基于marker map的多相机标定
+- [ ] 在线标定
+    - [ ] 基于车道线的相机标定
+# 第三方依赖
 This project includes and utilizes the [AprilTag](https://github.com/AprilRobotics/apriltag) library for tag detection and pose estimation.
 
 ## AprilTag Library
