@@ -35,6 +35,7 @@ include_directories(${GTEST_INCLUDE_DIRS})
 # 添加子目录
 add_subdirectory(tools)
 add_subdirectory(camera_model)
+add_subdirectory(calibration_model)
 add_subdirectory(factor)
 add_subdirectory(common)
 

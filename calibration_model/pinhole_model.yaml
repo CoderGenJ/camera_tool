@@ -1,0 +1,12 @@
+board_corner_row: 9  # 棋盘格行数
+board_corner_col: 6 # 棋盘格列数
+board_side_length: 10 # 棋盘格正方形边长
+width:   860          # 图片分辨率 宽
+height:  380       # 图片分辨率 高
+
+img_mini_num: 50     # 图片个数
+intrinsics_num: 4     # 内参个数
+distorted_param_num: 5 # 畸变个数
+
+reproj_error_th:  1  # 重投影误差阈值
+calibration_output_file: "./calibration_rlt.txt"

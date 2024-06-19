@@ -1,6 +1,6 @@
 #include "calibration_model.h"
+#include <fstream>
 #include <opencv2/opencv.hpp>
-
 namespace CalibrationModelNS {
 // ref:主要就是调接口
 // https://blog.csdn.net/Goodness2020/article/details/126254894
@@ -10,65 +10,57 @@ bool PinholeCalibrationModel::calibration() const {
     return false;
   }
   // 1.提取角点
-  int image_nums = 0;     // 有效图片数量统计
-  int points_per_row = 9; // 标定版每行的内点数
-  int points_per_col = 6; // 标定版每列的内点数
-  cv::Size image_size;    // 图片尺寸
-  cv::Size corner_size(points_per_row, points_per_col);
+  int image_nums = 0; // 有效图片数量统计
+  cv::Size image_size(config_.height, config_.width);
+  cv::Size corner_size(config_.board_corner_row, config_.board_corner_col);
   cv::Mat image_raw, image_gray;
   std::vector<cv::Point2f> points_per_image; // 缓存每幅图检测到的角点
-  std::vector<std::vector<cv::Point2f>> points_all_images;
-  for (const auto &img_file : imgs_files_) {
-    image_raw = cv::imread(img_file);
+  std::vector<std::vector<cv::Point2f>> corner_pts_all_images;
+  for (const auto &img_raw : imgs_mats_) {
     cv::cvtColor(image_raw, image_gray, cv::COLOR_BGR2GRAY);
     bool success =
         cv::findChessboardCorners(image_gray, corner_size, points_per_image);
     if (!success) {
       continue;
     } else {
-      cv::find4QuadCornerSubpix(
-          image_gray, points_per_image,
-          cv::Size(5, 5)); // 亚像素角点，也可使用cornerSubPix()
-      points_all_images.push_back(points_per_image);
+      cv::find4QuadCornerSubpix(image_gray, points_per_image, cv::Size(5, 5));
+      corner_pts_all_images.push_back(points_per_image);
+      image_nums++;
     }
   }
   // 2.计算3D点
-  cv::Size block_size(10, 10); // 每个小方格实际大小10mm,(w,h)
-  std::vector<cv::Point3f>
-      points3D_per_image; // 初始化角点三维坐标,从左到右,从上到下
-  cv::Point3f point3D;    // 3D点(x,y,z)
+  cv::Size block_size(config_.board_side_length, config_.board_side_length);
+  std::vector<cv::Point3f> points3D_per_image;
   for (int i = 0; i < corner_size.height; i++) // 第i行---y
   {
     for (int j = 0; j < corner_size.width; j++) // 第j列---x
     {
-      point3D = cv::Point3f(block_size.width * j, block_size.height * i, 0);
+      cv::Point3f point3D(block_size.width * j, block_size.height * i, 0);
       points3D_per_image.push_back(point3D);
     }
   }
-  std::vector<std::vector<cv::Point3f>> points3D_all_images(image_nums,
-                                                            points3D_per_image);
+  std::vector<std::vector<cv::Point3f>> all_borads_pt3d(image_nums,
+                                                        points3D_per_image);
   int point_counts = corner_size.area();
   // 3.标定
   std::cout << "开始标定相机" << std::endl;              // calibrateCamera
   cv::Mat cameraMat(3, 3, CV_32FC1, cv::Scalar::all(0)); // 内参矩阵3*3
-  cv::Mat distCoeffs(
-      1, 5, CV_32FC1,
-      cv::Scalar::all(0)); // 畸变矩阵1*5，既考虑径向畸变，又考虑切向
-  std::vector<cv::Mat> rotationMat;    // 旋转矩阵
-  std::vector<cv::Mat> translationMat; // 平移矩阵
-  cv::calibrateCamera(points3D_all_images, points_all_images, image_size,
-                      cameraMat, distCoeffs, rotationMat, translationMat,
-                      0); // 标定
-  std::ofstream fout("./calibration_result.txt");
+  cv::Mat distCoeffs(1, 5, CV_32FC1,
+                     cv::Scalar::all(0)); // 畸变矩阵1*5
+  std::vector<cv::Mat> rotationMat;       // 旋转矩阵
+  std::vector<cv::Mat> translationMat;    // 平移矩阵
+  cv::calibrateCamera(all_borads_pt3d, corner_pts_all_images, image_size,
+                      cameraMat, distCoeffs, rotationMat, translationMat, 0);
+
+  // 4.计算标定重投影误差
   double total_err = 0.0;                    // 所有图像平均误差总和
   double err = 0.0;                          // 每幅图像的平均误差
   std::vector<cv::Point2f> points_reproject; // 重投影点
-  fout << "计算每幅图像的标定误差：" << std::endl;
   for (int i = 0; i < image_nums; i++) {
-    points_per_image = points_all_images[i]; // 第i张图像提取角点
-    points3D_per_image = points3D_all_images[i]; // 第i张图像中角点的3D坐标
-    projectPoints(points3D_per_image, rotationMat[i], translationMat[i],
-                  cameraMat, distCoeffs, points_reproject); // 重投影
+    points_per_image = corner_pts_all_images[i]; // 第i张图像提取角点
+    points3D_per_image = all_borads_pt3d[i]; // 第i张图像中角点的3D坐标
+    cv::projectPoints(points3D_per_image, rotationMat[i], translationMat[i],
+                      cameraMat, distCoeffs, points_reproject); // 重投影
     cv::Mat detect_points_Mat(
         1, points_per_image.size(),
         CV_32FC2); // 变为1*S的矩阵,2通道保存提取角点的像素坐标
@@ -84,31 +76,22 @@ bool PinholeCalibrationModel::calibration() const {
     err = norm(points_reproj_Mat, detect_points_Mat,
                cv::NormTypes::NORM_L2); // 计算两者之间的误差
     total_err += err /= point_counts;
-    fout << "第" << i + 1 << "幅图像的平均误差为： " << err << "像素"
-         << std::endl;
   }
-  fout << "总体平均误差为： " << total_err / image_nums << "像素" << std::endl
-       << std::endl;
-
+  // 5.输出标定文件
+  std::ofstream fout(config_.calibration_output_file);
+  double reproj_average_error = total_err / image_nums;
   std::cout << "5、将标定结果写入文件……" << std::endl;
   fout << "相机内参数矩阵:" << std::endl << cameraMat << std::endl << std::endl;
   fout << "相机的畸变系数:" << std::endl
        << distCoeffs << std::endl
        << std::endl;
-  cv::Mat rotate_Mat =
-      cv::Mat(3, 3, CV_32FC1, cv::Scalar::all(0)); // 保存旋转矩阵
-  for (int i = 0; i < image_nums; i++) {
-    Rodrigues(rotationMat[i],
-              rotate_Mat); // 将旋转向量通过罗德里格斯公式转换为旋转矩阵
-    fout << "第" << i + 1 << "幅图像的旋转矩阵为：" << std::endl
-         << rotate_Mat << std::endl
-         << std::endl;
-    fout << "第" << i + 1 << "幅图像的平移向量为：" << std::endl
-         << translationMat[i] << std::endl
-         << std::endl;
-  }
-  fout << std::endl;
+  fout << "总体平均误差为： " << reproj_average_error << "像素" << std::endl
+       << std::endl;
   fout.close();
+  if (total_err / image_nums > config_.reproj_error_th) {
+    std::cout << "重投影误差太大" << reproj_average_error << std::endl;
+    return false;
+  }
   return true;
 }
 
