@@ -38,6 +38,8 @@ add_subdirectory(camera_model)
 add_subdirectory(calibration_model)
 add_subdirectory(factor)
 add_subdirectory(common)
+#add_subdirectory(marker_detector)
+add_subdirectory(3rparty)
 
 # 指定源文件并添加可执行文件
 set(SOURCES main.cpp)
