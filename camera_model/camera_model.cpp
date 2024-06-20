@@ -13,7 +13,6 @@ PinholeCameraModel::project(const Eigen::Vector3d &point_in_camera) const {
   } else {
     x = point_in_camera.x() / point_in_camera.z();
     y = point_in_camera.y() / point_in_camera.z();
-    
   }
 
   pt_image.x() = intrinsic_param_[0] * x + intrinsic_param_[2];
