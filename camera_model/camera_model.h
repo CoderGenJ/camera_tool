@@ -3,6 +3,7 @@
 #include <iostream>
 #include <memory>
 #include <opencv2/opencv.hpp>
+#include <string>
 #include <vector>
 namespace CameraModelNS {
 
@@ -19,7 +20,7 @@ public:
   /// 将3D点根据相机模型投影到像素平面,针对于图片已经去畸变的情况,投影过程中不考虑畸变
   /// @param point_in_camera 点在相机坐标系的3D坐标(X,Y,Z)
   /// @return 点在像素平面下的2D坐标(u,v)
-  virtual Eigen::Vector2d 
+  virtual Eigen::Vector2d
   project(const Eigen::Vector3d &point_in_camera) const = 0;
 
   /// @brief
@@ -67,6 +68,20 @@ public:
 
 private:
   std::vector<double> distorted_param_; // k1,k2,k3,p1,p2
+};
+
+template <typename... Args> class CameraFactory {
+public:
+  static std::shared_ptr<CameraModel>
+  createCamera(const std::string &type, const std::vector<double> &intr_param,
+               int reso_x, int reso_y, Args... args) {
+    if (type == "Pinhole") {
+      return std::make_shared<PinholeCameraModel>(intr_param, reso_x, reso_y,
+                                                  args...);
+    } else {
+      throw std::invalid_argument("Unknown camera type");
+    }
+  }
 };
 
 } // namespace CameraModelNS
