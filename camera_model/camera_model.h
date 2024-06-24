@@ -70,8 +70,9 @@ private:
   std::vector<double> distorted_param_; // k1,k2,k3,p1,p2
 };
 
-template <typename... Args> class CameraFactory {
+class CameraFactory {
 public:
+  template <typename... Args>
   static std::shared_ptr<CameraModel>
   createCamera(const std::string &type, const std::vector<double> &intr_param,
                int reso_x, int reso_y, Args... args) {

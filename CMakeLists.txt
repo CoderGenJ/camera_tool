@@ -41,6 +41,7 @@ add_subdirectory(common)
 add_subdirectory(marker_detector)
 add_subdirectory(pnp_solver)
 add_subdirectory(3rparty)
+add_subdirectory(sfm)
 
 # 指定源文件并添加可执行文件
 set(SOURCES main.cpp)

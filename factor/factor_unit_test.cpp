@@ -57,7 +57,7 @@ TEST(CERES_FACTOR, CERES_FACTOR) {
 
   for (auto pair : pairs) {
     problem.AddResidualBlock(
-        ceres_factor::Camera3D2DFactor::Create(cam_model, pair), loss_function,
+        ceres_factor::ReprojectErrorFactor::Create(cam_model, pair), loss_function,
         R_camera_ref, trans_camera_ref);
   }
   ceres::Solver::Options options;

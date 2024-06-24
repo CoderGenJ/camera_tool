@@ -16,8 +16,8 @@ bool ApriltagMarkerDetector::detectMarker(
     corners.push_back(cv::Point2d(det->p[1][0], det->p[1][1]));
     corners.push_back(cv::Point2d(det->p[2][0], det->p[2][1]));
     corners.push_back(cv::Point2d(det->p[3][0], det->p[3][1]));
-    output_marker_data.marker_corners.push_back(corners);
-    output_marker_data.marker_ids.push_back(std::to_string(det->id));
+    output_marker_data.id_marker_corners.push_back(
+        std::make_pair(det->id, corners));
   }
   return true;
 }

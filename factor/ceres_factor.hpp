@@ -10,9 +10,9 @@
 namespace ceres_factor {
 
 //求解PNP的因子
-class Camera3D2DFactor {
+class ReprojectErrorFactor {
 public:
-  Camera3D2DFactor(std::shared_ptr<CameraModelNS::CameraModel> camera_model,
+  ReprojectErrorFactor(std::shared_ptr<CameraModelNS::CameraModel> camera_model,
                    const data_common::Point3d2dPair &corresponding_pair) {
     camera_model_ptr_ = camera_model;
     correspond_pair_ = corresponding_pair;
@@ -46,12 +46,18 @@ public:
   static ceres::CostFunction *
   Create(std::shared_ptr<CameraModelNS::CameraModel> camera_model,
          const data_common::Point3d2dPair &corresponding_pair) {
-    return (new ceres::AutoDiffCostFunction<Camera3D2DFactor, 2, 4, 3>(
-        new Camera3D2DFactor(camera_model, corresponding_pair)));
+    return (new ceres::AutoDiffCostFunction<ReprojectErrorFactor, 2, 4, 3>(
+        new ReprojectErrorFactor(camera_model, corresponding_pair)));
   }
 
 private:
   std::shared_ptr<CameraModelNS::CameraModel> camera_model_ptr_;
   data_common::Point3d2dPair correspond_pair_;
 };
+
+class Pose3dFactor {
+
+
+};
+
 } // namespace ceres_factor

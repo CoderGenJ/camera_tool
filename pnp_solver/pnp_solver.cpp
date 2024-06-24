@@ -2,8 +2,10 @@
 
 namespace pnp_sovler {
 
-bool PnPSolver::solvePnP(Eigen::Matrix4d &output_rlt) {
-  if (pt_3d_2d_pairs_.size() < config_.min_size) {
+bool PnPSolver::solvePnP(
+    const std::vector<data_common::Point3d2dPair> &pt_3d_2d_pairs,
+    Eigen::Matrix4d &output_rlt) {
+  if (pt_3d_2d_pairs.size() < config_.min_size) {
     std::cout << "" << std::endl;
     return false;
   }
@@ -24,9 +26,9 @@ bool PnPSolver::solvePnP(Eigen::Matrix4d &output_rlt) {
   trans_camera_ref[2] = 0.0;
   problem.AddParameterBlock(R_camera_ref, 4, quatParam);
   problem.AddParameterBlock(trans_camera_ref, 3);
-  for (auto pair : pt_3d_2d_pairs_) {
+  for (auto pair : pt_3d_2d_pairs) {
     problem.AddResidualBlock(
-        ceres_factor::Camera3D2DFactor::Create(camera_model_ptr_, pair),
+        ceres_factor::ReprojectErrorFactor::Create(camera_model_ptr_, pair),
         loss_function, R_camera_ref, trans_camera_ref);
   }
   ceres::Solver::Options options;
@@ -48,7 +50,7 @@ bool PnPSolver::solvePnP(Eigen::Matrix4d &output_rlt) {
   output_rlt.block<3, 1>(0, 3) = trans_rlt;
   //结果检测
   double pixel_diff = 0.0;
-  for (const auto &pt3d2d : pt_3d_2d_pairs_) {
+  for (const auto &pt3d2d : pt_3d_2d_pairs) {
     Eigen::Vector3d pt3d_in_cam =
         output_rlt.block<3, 3>(0, 0) *
             Eigen::Vector3d{pt3d2d.pt3d.x, pt3d2d.pt3d.y, pt3d2d.pt3d.z} +
@@ -59,7 +61,7 @@ bool PnPSolver::solvePnP(Eigen::Matrix4d &output_rlt) {
     pixel_diff += delta_x * delta_x + delta_y * delta_y;
   }
   double pixel_diff_average =
-      pixel_diff / static_cast<double>(pt_3d_2d_pairs_.size());
+      pixel_diff / static_cast<double>(pt_3d_2d_pairs.size());
   if (pixel_diff_average > config_.pixel_diff * config_.pixel_diff) {
     std::cout << "average diff:" << pixel_diff_average
               << "more than:" << config_.pixel_diff * config_.pixel_diff

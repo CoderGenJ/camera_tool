@@ -20,8 +20,7 @@ namespace MarkerDetector {
 struct MarkerData {
   MarkerData() {}
   size_t marker_corner_size;
-  std::vector<std::vector<cv::Point2d>> marker_corners;
-  std::vector<std::string> marker_ids;
+  std::vector<std::pair<int, std::vector<cv::Point2d>>> id_marker_corners;
 };
 
 class BaseMarkerDetector {
