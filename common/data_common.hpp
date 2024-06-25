@@ -12,8 +12,14 @@ struct Point3d2dPair {
 };
 
 struct Pose3d {
-  Eigen::Vector3d p;
-  Eigen::Quaterniond q;
+  Pose3d() {}
+  Pose3d(const Eigen::Matrix4d &T) {
+    p = T.block<3, 1>(0, 3);
+    q = Eigen::Quaterniond(T.block<3, 3>(0, 0));
+    q.normalize();
+  }
+  Eigen::Vector3d p = Eigen::Vector3d::Zero();
+  Eigen::Quaterniond q = Eigen::Quaterniond::Identity();
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
 

@@ -19,7 +19,7 @@ namespace MarkerDetector {
 
 struct MarkerData {
   MarkerData() {}
-  size_t marker_corner_size;
+  // marker id , marker_2d in image
   std::vector<std::pair<int, std::vector<cv::Point2d>>> id_marker_corners;
 };
 
