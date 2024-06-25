@@ -1,13 +1,13 @@
 
 #include "camera_model.h"
 #include <gtest/gtest.h>
-
+#include <memory>
 TEST(PinholeCameraModel, PinholeCameraModel) {
-  std::vector<double> intrinsic_param{800, 800, 640, 480};
+  std::vector<double> intrinsic_param{800.0, 800.0, 640.0, 480.0};
   std::vector<double> distorted_param{0.0, 0.0, 0.0, 0.0, 0.0};
-  std::shared_ptr<CameraModelNS::PinholeCameraModel> cam_model(
-      new CameraModelNS::PinholeCameraModel(intrinsic_param, distorted_param,
-                                            1000, 2000));
+  std::shared_ptr<CameraModelNS::PinholeCameraModel> cam_model =
+      std::make_shared<CameraModelNS::PinholeCameraModel>(
+          intrinsic_param, 1000, 2000, distorted_param);
   Eigen::Vector3d pt3d(1.0, 2.0, 3.0);
   Eigen::Vector2d pt3d_in_norm(pt3d.x() / pt3d.z(), pt3d.y() / pt3d.z());
   std::cout << "pt3d_in_norm:" << pt3d_in_norm.transpose() << std::endl;

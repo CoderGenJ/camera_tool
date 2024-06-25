@@ -16,8 +16,8 @@ TEST(CERES_FACTOR, CERES_FACTOR) {
   std::vector<double> intrinsic_param{800, 800, 640, 480};
   std::vector<double> distorted_param{0.0, 0.0, 0.0, 0.0, 0.0};
   std::shared_ptr<CameraModelNS::PinholeCameraModel> cam_model(
-      new CameraModelNS::PinholeCameraModel(intrinsic_param, distorted_param,
-                                            1000, 2000));
+      new CameraModelNS::PinholeCameraModel(intrinsic_param, 1000, 2000,
+                                            distorted_param));
   //生成生成转换
   Eigen::Matrix3d rotation =
       transform_common::eulerAngleToMatrix<double>(1.0, 1.1, 1.2);
@@ -57,8 +57,8 @@ TEST(CERES_FACTOR, CERES_FACTOR) {
 
   for (auto pair : pairs) {
     problem.AddResidualBlock(
-        ceres_factor::ReprojectErrorFactor::Create(cam_model, pair), loss_function,
-        R_camera_ref, trans_camera_ref);
+        ceres_factor::ReprojectErrorFactor::Create(cam_model, pair),
+        loss_function, R_camera_ref, trans_camera_ref);
   }
   ceres::Solver::Options options;
   options.linear_solver_type = ceres::DENSE_SCHUR;

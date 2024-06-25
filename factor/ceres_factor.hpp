@@ -13,7 +13,7 @@ namespace ceres_factor {
 class ReprojectErrorFactor {
 public:
   ReprojectErrorFactor(std::shared_ptr<CameraModelNS::CameraModel> camera_model,
-                   const data_common::Point3d2dPair &corresponding_pair) {
+                       const data_common::Point3d2dPair &corresponding_pair) {
     camera_model_ptr_ = camera_model;
     correspond_pair_ = corresponding_pair;
   }
@@ -54,10 +54,61 @@ private:
   std::shared_ptr<CameraModelNS::CameraModel> camera_model_ptr_;
   data_common::Point3d2dPair correspond_pair_;
 };
+using namespace data_common;
 
-class Pose3dFactor {
+/// @brief 两个pose之间得残差
+/// 维度为:6
+/// 平移残差:残差相减
+/// 旋转残差:旋转差的虚部
+class Pose3dErrorFactor {
+public:
+  Pose3dErrorFactor(const Pose3d &T_ab_measured,
+                    const Eigen::Matrix<double, 6, 6> &sqrt_info)
+      : T_ab_measured_(T_ab_measured), sqrt_info_(sqrt_info) {}
 
+  /// @brief 仿函数用于计算残差,其中o标定为初始坐标系
+  /// @tparam T
+  /// @param p_o_a frame a相当于frame o的平移
+  /// @param q_o_a frame a相当于frame o的旋转
+  /// @param p_o_b frame b相当于frame o的平移
+  /// @param q_o_b frame b相当于frame o的旋转
+  /// @return
+  template <typename T>
+  bool operator()(const T *const p_o_a, const T *const q_o_a,
+                  const T *const p_o_b, const T *const q_o_b,
+                  T *residuals_ptr) const {
+    // 1.map 指针映射到eigen
+    Eigen::Map<const Eigen::Matrix<T, 3, 1>> p_o_a_eigen(p_o_a);
+    Eigen::Map<const Eigen::Quaternion<T>> q_o_a_eigen(q_o_a);
+    Eigen::Map<const Eigen::Matrix<T, 3, 1>> p_o_b_eigen(p_o_b);
+    Eigen::Map<const Eigen::Quaternion<T>> q_o_b_eigen(q_o_b);
+    // 2.计算ab相对转换
+    Eigen::Quaternion<T> q_a_o = q_o_a_eigen.conjugate();
+    Eigen::Quaternion<T> q_ab_estimated = q_a_o * q_o_b_eigen;
+    Eigen::Matrix<T, 3, 1> p_ab_estimated = q_a_o * (p_o_b_eigen - p_o_a_eigen);
+    // 3.计算残差
+    Eigen::Quaternion<T> delta_q =
+        T_ab_measured_.q.template cast<T>() * q_ab_estimated.conjugate();
+    Eigen::Matrix<T, 3, 1> delta_t =
+        p_ab_estimated - T_ab_measured_.p.template cast<T>();
 
+    Eigen::Map<Eigen::Matrix<T, 6, 1>> residuals(residuals_ptr);
+    residuals.template block<3, 1>(0, 0) = delta_t;
+    residuals.template block<3, 1>(3, 0) = T(2.0) * delta_q.vec();
+    residuals.applyOnTheLeft(sqrt_info_.template cast<T>());
+    return true;
+  }
+
+  static ceres::CostFunction *
+  Create(const Pose3d &t_ab_measured,
+         const Eigen::Matrix<double, 6, 6> &sqrt_information) {
+    return new ceres::AutoDiffCostFunction<Pose3dErrorFactor, 6, 3, 4, 3, 4>(
+        new Pose3dErrorFactor(t_ab_measured, sqrt_information));
+  }
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+private:
+  Pose3d T_ab_measured_;
+  Eigen::Matrix<double, 6, 6> sqrt_info_;
 };
 
 } // namespace ceres_factor

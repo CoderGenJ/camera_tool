@@ -49,8 +49,8 @@ protected:
 class PinholeCameraModel : public CameraModel {
 public:
   PinholeCameraModel(const std::vector<double> &intrinsic_param,
-                     const std::vector<double> &distorted_param,
-                     int resolution_x, int resolution_y)
+                     int resolution_x, int resolution_y,
+                     const std::vector<double> &distorted_param)
       : CameraModel(intrinsic_param, resolution_x, resolution_y),
         distorted_param_(distorted_param) {}
 
