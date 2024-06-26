@@ -103,6 +103,9 @@ bool structureFromMotion::buildOptimizationProblem(ceres::Problem *problem) {
       }
     }
   }
+  problem->SetParameterBlockConstant(img_nodes_[0].T_map_current.p.data());
+  problem->SetParameterBlockConstant(
+      img_nodes_[0].T_map_current.q.coeffs().data());
   return true;
 }
 
