@@ -34,6 +34,7 @@ struct ImgNode {
   size_t index;
   // marker坐标
   std::vector<MarkerImgItem> marker_items;
+  data_common::Pose3d T_map_current;
 };
 
 /// @brief 从多张图片中恢复marker的3D坐标,生成对应的点云图
@@ -56,6 +57,12 @@ public:
   /// @brief 从图片中提取marker
   /// @param img
   void extractMarker(cv::Mat img);
+
+  /// @brief 优化图像之间的pose graph地图,得出一系列pose
+  /// @return
+  bool optiPoseGraph();
+
+  bool buildOptimizationProblem(ceres::Problem *problem);
 
 private:
   structureFromMotionConfig config_;

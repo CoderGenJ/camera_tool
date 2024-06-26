@@ -18,6 +18,23 @@ struct Pose3d {
     q = Eigen::Quaterniond(T.block<3, 3>(0, 0));
     q.normalize();
   }
+  /// @brief 求pose的逆
+  /// @param
+  /// @return
+  Pose3d inverse() const {
+    Pose3d result;
+    result.q = q.inverse();
+    result.p = -1.0 * (q.inverse() * p);
+    return result;
+  }
+
+  Pose3d operator*(const Pose3d &other) const {
+    Pose3d result;
+    result.q = q * other.q;
+    result.p = q * other.p + p;
+    return result;
+  }
+
   Eigen::Vector3d p = Eigen::Vector3d::Zero();
   Eigen::Quaterniond q = Eigen::Quaterniond::Identity();
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
