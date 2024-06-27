@@ -8,6 +8,48 @@
 #include <ceres/local_parameterization.h>
 #include <ceres/rotation.h>
 namespace ceres_factor {
+/// @brief 该因子只适配去畸变过后的图片
+class ReprojectErrorMapPoseFactor {
+public:
+  ReprojectErrorMapPoseFactor(
+      std::shared_ptr<CameraModelNS::CameraModel> camera_model,
+      const Eigen::Vector2d &feature_pt)
+      : camera_model_ptr_(camera_model), feature_pt_(feature_pt) {}
+  template <typename T>
+  bool operator()(const T *q, const T *trans, const T *map_pt, T *residual) {
+    Eigen::Matrix<T, 2, 1> feature_pt_temp = feature_pt_.cast<T>();
+    Eigen::Matrix<T, 2, 1> reproj_pt;
+
+    Eigen::Map<Eigen::Matrix<T, 3, 1>> map_pt_temp(map_pt);
+    Eigen::Map<Eigen::Quaternion<T>> q_temp(q);
+    Eigen::Map<Eigen::Matrix<T, 3, 1>> trans_temp(trans);
+    Eigen::Matrix<T, 3, 1> map_pt_in_cam = q * map_pt_temp + trans_temp;
+
+    T x = map_pt_in_cam[0] / map_pt_in_cam[2];
+    T y = map_pt_in_cam[1] / map_pt_in_cam[2];
+    //计算重投影
+    auto intrinsic_param = camera_model_ptr_->getIntrinsicParam();
+    T fx = T(intrinsic_param[0]);
+    T fy = T(intrinsic_param[1]);
+    T cx = T(intrinsic_param[2]);
+    T cy = T(intrinsic_param[3]);
+    reproj_pt.x() = fx * x + cx;
+    reproj_pt.y() = fy * y + cy;
+    residual[0] = reproj_pt.x() - feature_pt_temp[0];
+    residual[1] = reproj_pt.y() - feature_pt_temp[1];
+  }
+  static ceres::CostFunction *
+  Create(std::shared_ptr<CameraModelNS::CameraModel> camera_model,
+         const Eigen::Vector2d &feature_pt) {
+    return (new ceres::AutoDiffCostFunction<ReprojectErrorMapPoseFactor, 2, 4,
+                                            3, 3>(
+        new ReprojectErrorMapPoseFactor(camera_model, feature_pt)));
+  }
+
+private:
+  std::shared_ptr<CameraModelNS::CameraModel> camera_model_ptr_;
+  Eigen::Vector2d feature_pt_;
+};
 
 //求解PNP的因子
 class ReprojectErrorFactor {

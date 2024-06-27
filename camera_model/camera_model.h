@@ -39,6 +39,10 @@ public:
   // 图像去畸变
   virtual cv::Mat undistortImage(const cv::Mat &distorted_image) const = 0;
 
+  std::vector<double> getIntrinsicParam() { return intrinsic_param_; }
+  int getReloX() { return resolution_x_; }
+  int getReloY() { return resolution_y_; }
+
 protected:
   std::vector<double> intrinsic_param_; //顺序:fx,fy,cx,cy
   int resolution_x_;

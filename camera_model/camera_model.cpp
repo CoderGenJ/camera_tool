@@ -19,6 +19,7 @@ PinholeCameraModel::project(const Eigen::Vector3d &point_in_camera) const {
   pt_image.y() = intrinsic_param_[1] * y + intrinsic_param_[3];
   return pt_image;
 }
+
 Eigen::Vector2d
 PinholeCameraModel::pointAddDistorted(const Eigen::Vector2d &pt) const {
   double k1 = distorted_param_[0];
