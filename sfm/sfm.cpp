@@ -49,22 +49,47 @@ void structureFromMotion::extractMarker(cv::Mat img) {
   img_nodes_.push_back(img_node);
 }
 
+bool structureFromMotion::constructMap() {
+  if (co_vis_.empty()) {
+    return false;
+  }
+  // 1.遍历所有marker id
+  for (auto co_vis_iter = co_vis_.begin(); co_vis_iter != co_vis_.end();
+       ++co_vis_iter) {
+    std::vector<Eigen::Vector3d> marker_average_map(config_.marker_corner_num);
+    auto marker_id = co_vis_iter->first;
+    for (size_t i = 0; i < co_vis_iter->second.size(); ++i) {
+      auto &node = img_nodes_.at(i);
+      const auto &marker_iterm = node.marker_items;
+      size_t index;
+      if (!find_marker_index_func_(marker_id, marker_iterm, index)) {
+        continue;
+      }
+      auto &marker3d_in_cam = marker_iterm.at(index).marker_3ds_in_cam;
+      if (marker_iterm.at(index).marker_3ds_in_cam.size() !=
+          config_.marker_corner_num) {
+        std::cout << "marker数不一样" << std::endl;
+        return false;
+      }
+      for (size_t i = 0; i < marker3d_in_cam.size(); ++i) {
+        auto mk3d_in_map = node.T_map_current.transfPt(marker3d_in_cam.at(i));
+        marker_average_map.at(i) += mk3d_in_map;
+      }
+    }
+    for (size_t i = 0; i < marker_average_map.size(); ++i) {
+      marker_average_map.at(i) =
+          marker_average_map.at(i) /
+          static_cast<double>(co_vis_iter->second.size());
+    }
+    map_.insert(std::make_pair(marker_id, marker_average_map));
+  }
+  return true;
+}
+
 bool structureFromMotion::buildOptimizationProblem(ceres::Problem *problem) {
   if (img_nodes_.empty()) {
     return false;
   }
-  auto find_marker_index = [](int marker_id,
-                              const std::vector<MarkerImgItem> &marker_iterms,
-                              size_t &index) -> bool {
-    for (size_t i = 0; i < marker_iterms.size(); ++i) {
-      if (marker_iterms.at(i).marker_id == marker_id) {
-        index = i;
-        return true;
-      }
-    }
-    return false;
-  };
-
   ceres::LossFunction *loss_function = NULL;
   ceres::LocalParameterization *quaternion_local_parameterization =
       new ceres::EigenQuaternionParameterization;
@@ -78,7 +103,7 @@ bool structureFromMotion::buildOptimizationProblem(ceres::Problem *problem) {
       auto &a_node = img_nodes_.at(i);
       const auto &a_marker_iterm = a_node.marker_items;
       size_t a_index;
-      if (!find_marker_index(marker_id, a_marker_iterm, a_index)) {
+      if (!find_marker_index_func_(marker_id, a_marker_iterm, a_index)) {
         continue;
       }
       const auto &T_a_board = a_marker_iterm.at(a_index).pose;
@@ -86,7 +111,7 @@ bool structureFromMotion::buildOptimizationProblem(ceres::Problem *problem) {
         auto &b_node = img_nodes_.at(j);
         const auto &b_marker_iterm = a_node.marker_items;
         size_t b_index;
-        if (!find_marker_index(marker_id, b_marker_iterm, b_index)) {
+        if (!find_marker_index_func_(marker_id, b_marker_iterm, b_index)) {
           continue;
         }
         const auto &T_b_board = b_marker_iterm.at(b_index).pose;

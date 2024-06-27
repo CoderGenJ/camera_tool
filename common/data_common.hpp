@@ -34,6 +34,11 @@ struct Pose3d {
     result.p = q * other.p + p;
     return result;
   }
+  template <class T>
+  Eigen::Matrix<T, 3, 1> transfPt(const Eigen::Matrix<T, 3, 1> &pt) {
+    Eigen::Matrix<T, 3, 1> output_pt = q.cast<T>() * pt + p.cast<T>();
+    return output_pt;
+  }
 
   Eigen::Vector3d p = Eigen::Vector3d::Zero();
   Eigen::Quaterniond q = Eigen::Quaterniond::Identity();

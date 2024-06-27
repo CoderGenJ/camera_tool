@@ -2,6 +2,7 @@
 #include "ceres_factor.hpp"
 #include "marker_detector.h"
 #include "pnp_solver.h"
+#include <functional>
 #include <opencv2/opencv.hpp>
 #include <unordered_map>
 #include <vector>
@@ -10,6 +11,7 @@ namespace SFM {
 // 由于现实中marker的尺寸是知道的,所以,可以通过尺寸的边长来生成marker坐标系下的3D坐标
 struct structureFromMotionConfig {
   double marker_width_m = 0.5;
+  size_t marker_corner_num = 4;
   std::string camera_type = "Pinhole";
   std::vector<double> intrin_param;
   double reso_x;
@@ -52,6 +54,17 @@ public:
         std::make_unique<MarkerDetector::ApriltagMarkerDetector>(
             config_.apritag_config);
     index_ = 0;
+    find_marker_index_func_ =
+        [](int marker_id, const std::vector<MarkerImgItem> &marker_iterms,
+           size_t &index) -> bool {
+      for (size_t i = 0; i < marker_iterms.size(); ++i) {
+        if (marker_iterms.at(i).marker_id == marker_id) {
+          index = i;
+          return true;
+        }
+      }
+      return false;
+    };
     // todo:添加board_corners_
   }
   /// @brief 从图片中提取marker
@@ -64,6 +77,10 @@ public:
 
   bool buildOptimizationProblem(ceres::Problem *problem);
 
+  /// @brief 基于pose graph构建点云地图
+  /// @return
+  bool constructMap();
+
 private:
   structureFromMotionConfig config_;
   std::vector<cv::Point3d> board_corners_;
@@ -74,6 +91,11 @@ private:
   std::vector<ImgNode> img_nodes_;
   // marker id , img_index
   std::unordered_map<int, std::vector<size_t>> co_vis_;
+  // marker id , map pt
+  std::unordered_map<int, std::vector<Eigen::Vector3d>> map_;
+
+  std::function<bool(int, const std::vector<MarkerImgItem> &, size_t &)>
+      find_marker_index_func_;
 };
 
 } // namespace SFM
