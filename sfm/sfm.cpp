@@ -125,6 +125,10 @@ bool structureFromMotion::buildOptimizationProblem(ceres::Problem *problem) {
                                   a_node.T_map_current.q.coeffs().data(),
                                   b_node.T_map_current.p.data(),
                                   b_node.T_map_current.q.coeffs().data());
+        problem->SetParameterization(a_node.T_map_current.q.coeffs().data(),
+                                     quaternion_local_parameterization);
+        problem->SetParameterization(b_node.T_map_current.q.coeffs().data(),
+                                     quaternion_local_parameterization);
       }
     }
   }
@@ -137,13 +141,51 @@ bool structureFromMotion::buildOptimizationProblem(ceres::Problem *problem) {
 
 bool structureFromMotion::optiPoseGraph() {
   ceres::Problem problem;
-
   buildOptimizationProblem(&problem);
-
   ceres::Solver::Options options;
   options.max_num_iterations = 200;
   options.linear_solver_type = ceres::SPARSE_NORMAL_CHOLESKY;
+  ceres::Solver::Summary summary;
+  ceres::Solve(options, &problem, &summary);
+  std::cout << summary.FullReport() << '\n';
+  return summary.IsSolutionUsable();
+}
 
+bool structureFromMotion::buildBundleAdjustment(ceres::Problem *problem) {
+  ceres::LossFunction *loss_function = NULL;
+  ceres::LocalParameterization *quaternion_local_parameterization =
+      new ceres::EigenQuaternionParameterization;
+  // 1.遍历每一个图片
+  for (size_t i = 0; i < img_nodes_.size(); ++i) {
+    auto &node = img_nodes_.at(i);
+    //求解的是T_current_map,但是保存的T_map_current,为保证初始值,需要求逆
+    node.T_current_map = node.T_map_current.inverse();
+    // 2.遍历每一个board marker
+    for (const auto &marker_item : node.marker_items) {
+      // 3.遍历每个corner
+      for (size_t j = 0; j < marker_item.marker_2ds.size(); ++j) {
+        ceres::CostFunction *cost_function =
+            ceres_factor::ReprojectErrorMapPoseFactor::Create(
+                camera_model_ptr_, marker_item.marker_2ds.at(j));
+        problem->AddResidualBlock(cost_function, loss_function,
+                                  node.T_current_map.p.data(),
+                                  node.T_current_map.q.coeffs().data(),
+                                  map_[marker_item.marker_id].at(j).data());
+        problem->SetParameterization(node.T_current_map.q.coeffs().data(),
+                                     quaternion_local_parameterization);
+      }
+    }
+  }
+
+  return true;
+}
+
+bool structureFromMotion::fullBundleAdjustment() {
+  ceres::Problem problem;
+  buildBundleAdjustment(&problem);
+  ceres::Solver::Options options;
+  options.max_num_iterations = 200;
+  options.linear_solver_type = ceres::SPARSE_NORMAL_CHOLESKY;
   ceres::Solver::Summary summary;
   ceres::Solve(options, &problem, &summary);
   std::cout << summary.FullReport() << '\n';

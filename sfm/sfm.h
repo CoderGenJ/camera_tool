@@ -37,6 +37,7 @@ struct ImgNode {
   // marker坐标
   std::vector<MarkerImgItem> marker_items;
   data_common::Pose3d T_map_current;
+  data_common::Pose3d T_current_map;
 };
 
 /// @brief 从多张图片中恢复marker的3D坐标,生成对应的点云图
@@ -44,12 +45,11 @@ class structureFromMotion {
 public:
   structureFromMotion(const structureFromMotionConfig &config)
       : config_(config) {
-    std::shared_ptr<CameraModelNS::CameraModel> camera_model_ptr =
-        CameraModelNS::CameraFactory::createCamera(
-            config_.camera_type, config_.intrin_param, config_.reso_x,
-            config_.reso_y, config_.distorted_param);
+    camera_model_ptr_ = CameraModelNS::CameraFactory::createCamera(
+        config_.camera_type, config_.intrin_param, config_.reso_x,
+        config_.reso_y, config_.distorted_param);
     pnp_sovler_ptr_ = std::make_unique<pnp_sovler::PnPSolver>(
-        config_.pnp_config, camera_model_ptr);
+        config_.pnp_config, camera_model_ptr_);
     marker_detector_ptr_ =
         std::make_unique<MarkerDetector::ApriltagMarkerDetector>(
             config_.apritag_config);
@@ -75,16 +75,24 @@ public:
   /// @return
   bool optiPoseGraph();
 
+  /// @brief 全局优化,map点和pose(T_map_current)
+  /// @return
+  bool fullBundleAdjustment();
+
   bool buildOptimizationProblem(ceres::Problem *problem);
 
   /// @brief 基于pose graph构建点云地图
   /// @return
   bool constructMap();
 
+  /// @brief 全局优化,pose graph/map point
+  bool buildBundleAdjustment(ceres::Problem *problem);
+
 private:
   structureFromMotionConfig config_;
   std::vector<cv::Point3d> board_corners_;
   std::unique_ptr<pnp_sovler::PnPSolver> pnp_sovler_ptr_;
+  std::shared_ptr<CameraModelNS::CameraModel> camera_model_ptr_;
   std::unique_ptr<MarkerDetector::ApriltagMarkerDetector> marker_detector_ptr_;
 
   size_t index_;

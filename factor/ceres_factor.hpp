@@ -16,7 +16,7 @@ public:
       const Eigen::Vector2d &feature_pt)
       : camera_model_ptr_(camera_model), feature_pt_(feature_pt) {}
   template <typename T>
-  bool operator()(const T * q, const T * trans, const T * map_pt,
+  bool operator()(const T *q, const T *trans, const T *map_pt,
                   T *residual) const {
     Eigen::Matrix<T, 2, 1> feature_pt_temp = feature_pt_.cast<T>();
     Eigen::Matrix<T, 2, 1> reproj_pt;
