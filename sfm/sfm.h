@@ -10,13 +10,16 @@ namespace SFM {
 // marker 3d 坐标:
 // 由于现实中marker的尺寸是知道的,所以,可以通过尺寸的边长来生成marker坐标系下的3D坐标
 struct structureFromMotionConfig {
+  structureFromMotionConfig() {}
   double marker_width_m = 0.5;
   size_t marker_corner_num = 4;
   std::string camera_type = "Pinhole";
   std::vector<double> intrin_param;
-  double reso_x;
-  double reso_y;
   std::vector<double> distorted_param;
+  // width
+  double reso_x;
+  // height
+  double reso_y;
   pnp_sovler::PnPSolverConfig pnp_config;
   MarkerDetector::ApriltagMarkerDetectorConfig apritag_config;
 };

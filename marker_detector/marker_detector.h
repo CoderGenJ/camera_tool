@@ -36,6 +36,7 @@ public:
 };
 
 struct ApriltagMarkerDetectorConfig {
+  ApriltagMarkerDetectorConfig() {}
   ApriltagMarkerDetectorConfig(const std::string &_family, float _quad_decimate,
                                float _quad_sigma, int _nthreads, bool _debug,
                                bool _refine_edges)
