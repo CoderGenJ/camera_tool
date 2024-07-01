@@ -1,0 +1,5 @@
+model_name: "Pinhole"
+intrinsic_param:
+distorted_param:
+resolution_w:
+resolution_h:

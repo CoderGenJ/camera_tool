@@ -1,6 +1,7 @@
 #include "calibration_model.h"
 #include <fstream>
 #include <opencv2/opencv.hpp>
+#include <yaml-cpp/yaml.h>
 namespace CalibrationModelNS {
 // ref:主要就是调接口
 // https://blog.csdn.net/Goodness2020/article/details/126254894
@@ -77,21 +78,36 @@ bool PinholeCalibrationModel::calibration() const {
                cv::NormTypes::NORM_L2); // 计算两者之间的误差
     total_err += err /= point_counts;
   }
-  // 5.输出标定文件
-  std::ofstream fout(config_.calibration_output_file);
+
   double reproj_average_error = total_err / image_nums;
-  std::cout << "5、将标定结果写入文件……" << std::endl;
-  fout << "相机内参数矩阵:" << std::endl << cameraMat << std::endl << std::endl;
-  fout << "相机的畸变系数:" << std::endl
-       << distCoeffs << std::endl
-       << std::endl;
-  fout << "总体平均误差为： " << reproj_average_error << "像素" << std::endl
-       << std::endl;
-  fout.close();
   if (total_err / image_nums > config_.reproj_error_th) {
     std::cout << "重投影误差太大" << reproj_average_error << std::endl;
+    std::cout << "标定失败!" << std::endl;
     return false;
   }
+  
+  // 5.输出标定文件
+  YAML::Node config;
+  config["model_name"] = "Pinhole";
+  double fx = cameraMat.at<double>(0, 0);  // 获取 fx
+  double fy = cameraMat.at<double>(1, 1);  // 获取 fy
+  double cx = cameraMat.at<double>(0, 2);  // 获取 cx
+  double cy = cameraMat.at<double>(1, 2);  // 获取 cy
+  double k1 = distCoeffs.at<double>(0, 0); // 获取 k1
+  double k2 = distCoeffs.at<double>(0, 1); // 获取 k2
+  double k3 = distCoeffs.at<double>(0, 2); // 获取 k3
+  double p1 = distCoeffs.at<double>(0, 3); // 获取 p1
+  double p2 = distCoeffs.at<double>(0, 4); // 获取 p2
+
+  config["intrinsic_param"] = std::vector<double>{fx, fy, cx, cy};
+  config["distorted_param"] = std::vector<double>{k1, k2, k3, p1, p2};
+  config["resolution_w"] = config_.width;
+  config["resolution_h"] = config_.height;
+  config["reproj_average_error_pixel"] = reproj_average_error;
+
+  std::ofstream fout(config_.calibration_output_file);
+  fout << config;
+  fout.close();
   return true;
 }
 
