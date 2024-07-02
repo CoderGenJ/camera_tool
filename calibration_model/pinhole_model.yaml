@@ -10,3 +10,4 @@ distorted_param_num: 5 # 畸变个数
 
 reproj_error_th:  1  # 重投影误差阈值
 calibration_output_file: "./calibration_rlt.yaml"
+draw_corrner_img: True

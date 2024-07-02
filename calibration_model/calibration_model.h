@@ -74,12 +74,16 @@ struct PinholeCalibrationModelConfig {
         calibration_output_file =
             config["calibration_output_file"].as<std::string>();
       }
+      if (config["draw_corrner_img"]) {
+        draw_corrner_img = config["draw_corrner_img"].as<bool>();
+      }
     } catch (const YAML::Exception &e) {
       std::cerr << "Error reading YAML file: " << e.what() << std::endl;
       return false;
     }
     return true;
   }
+  
   int board_corner_row;  // 棋盘格行数
   int board_corner_col;  // 棋盘格列数
   int board_side_length; //棋盘格正方形边长
@@ -92,6 +96,7 @@ struct PinholeCalibrationModelConfig {
 
   double reproj_error_th; //重投影误差阈值
   std::string calibration_output_file = "";
+  bool draw_corrner_img = false;
 };
 
 class PinholeCalibrationModel : public BaseCalibrationModel {

@@ -45,7 +45,7 @@ struct ApriltagMarkerDetectorConfig {
   std::string family;
   float quad_decimate;
   float quad_sigma;
-  int nthreads;
+  int nthreads=1;
   bool debug;
   bool refine_edges;
 };

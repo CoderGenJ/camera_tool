@@ -62,6 +62,24 @@ bool PinholeCalibrationModel::calibration() const {
     points3D_per_image = all_borads_pt3d[i]; // 第i张图像中角点的3D坐标
     cv::projectPoints(points3D_per_image, rotationMat[i], translationMat[i],
                       cameraMat, distCoeffs, points_reproject); // 重投影
+    if (config_.draw_corrner_img) {
+      cv::Mat raw_img = imgs_mats_[i];
+      for (const auto &point : points_reproject) {
+        cv::circle(raw_img, point, 5, cv::Scalar(0, 0, 255),
+                   -1); // BGR格式: 红色
+      }
+      for (const auto &point : points_per_image) {
+        cv::circle(raw_img, point, 5, cv::Scalar(0, 255, 0),
+                   -1); // BGR格式: 绿色
+      }
+      std::string file =
+          config_.calibration_output_file + "/" + std::to_string(i) + ".png";
+      if (cv::imwrite(file, raw_img)) {
+        std::cout << "Image saved successfully: " << file << std::endl;
+      } else {
+        std::cerr << "Error: Could not save the image" << std::endl;
+      }
+    }
     cv::Mat detect_points_Mat(
         1, points_per_image.size(),
         CV_32FC2); // 变为1*S的矩阵,2通道保存提取角点的像素坐标
@@ -85,7 +103,7 @@ bool PinholeCalibrationModel::calibration() const {
     std::cout << "标定失败!" << std::endl;
     return false;
   }
-  
+
   // 5.输出标定文件
   YAML::Node config;
   config["model_name"] = "Pinhole";
