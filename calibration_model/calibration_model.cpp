@@ -60,21 +60,24 @@ bool PinholeCalibrationModel::calibration() const {
   for (int i = 0; i < image_nums; i++) {
     points_per_image = corner_pts_all_images[i]; // 第i张图像提取角点
     points3D_per_image = all_borads_pt3d[i]; // 第i张图像中角点的3D坐标
+    //投影坐标去畸变之后的2D坐标
     cv::projectPoints(points3D_per_image, rotationMat[i], translationMat[i],
                       cameraMat, distCoeffs, points_reproject); // 重投影
     if (config_.draw_corrner_img) {
       cv::Mat raw_img = imgs_mats_[i];
+      cv::Mat undistortedImage;
+      cv::undistort(raw_img, undistortedImage, cameraMat, distCoeffs);
       for (const auto &point : points_reproject) {
-        cv::circle(raw_img, point, 5, cv::Scalar(0, 0, 255),
+        cv::circle(undistortedImage, point, 5, cv::Scalar(0, 0, 255),
                    -1); // BGR格式: 红色
       }
       for (const auto &point : points_per_image) {
-        cv::circle(raw_img, point, 5, cv::Scalar(0, 255, 0),
+        cv::circle(undistortedImage, point, 5, cv::Scalar(0, 255, 0),
                    -1); // BGR格式: 绿色
       }
       std::string file =
           config_.calibration_output_file + "/" + std::to_string(i) + ".png";
-      if (cv::imwrite(file, raw_img)) {
+      if (cv::imwrite(file, undistortedImage)) {
         std::cout << "Image saved successfully: " << file << std::endl;
       } else {
         std::cerr << "Error: Could not save the image" << std::endl;
@@ -96,7 +99,6 @@ bool PinholeCalibrationModel::calibration() const {
                cv::NormTypes::NORM_L2); // 计算两者之间的误差
     total_err += err /= point_counts;
   }
-
   double reproj_average_error = total_err / image_nums;
   if (total_err / image_nums > config_.reproj_error_th) {
     std::cout << "重投影误差太大" << reproj_average_error << std::endl;
