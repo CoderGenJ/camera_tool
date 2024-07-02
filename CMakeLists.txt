@@ -43,13 +43,6 @@ add_subdirectory(pnp_solver)
 add_subdirectory(3rparty)
 add_subdirectory(sfm)
 
-# 指定源文件并添加可执行文件
-set(SOURCES main.cpp)
-add_executable(${PROJECT_NAME} ${SOURCES})
-
-# 链接OpenCV库和Eigen库
-target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBS} Eigen3::Eigen)
-
 # 打印消息以确认包含的目录
 message(STATUS "Include directories: ${OpenCV_INCLUDE_DIRS}")
 message(STATUS "Eigen3 include directory: ${EIGEN3_INCLUDE_DIR}")
