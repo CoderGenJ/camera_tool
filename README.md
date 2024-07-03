@@ -11,7 +11,8 @@
 - [ ] 基于BA的SFM构建
 - [ ] 基于marker map的多相机标定
 - [ ] 在线标定
-    - [ ] 基于车道线的相机标定
+    - [ ] 基于VP的相机标定
+    - [ ] 车道线LaneATT提取
 # 第三方依赖
 This project includes and utilizes the [AprilTag](https://github.com/AprilRobotics/apriltag) library for tag detection and pose estimation.
 
