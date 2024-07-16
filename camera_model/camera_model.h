@@ -43,6 +43,10 @@ public:
   int getReloX() { return resolution_x_; }
   int getReloY() { return resolution_y_; }
 
+  bool onImage(const Eigen::Vector2d &pt) {
+    return pt.x() < resolution_x_ && pt.y() < resolution_y_;
+  }
+
 protected:
   std::vector<double> intrinsic_param_; //顺序:fx,fy,cx,cy
   int resolution_x_;

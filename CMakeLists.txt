@@ -25,13 +25,19 @@ endif()
 
 find_package(Ceres REQUIRED)
 find_package(GTest REQUIRED)
+find_package(PCL REQUIRED)
 # 包含OpenCV头文件路径
 include_directories(${OpenCV_INCLUDE_DIRS})
 # 包含Eigen头文件路径
 include_directories(${EIGEN3_INCLUDE_DIR})
 include_directories(${CERES_INCLUDE_DIR})
 include_directories(${GTEST_INCLUDE_DIRS})
+include_directories(${PCL_INCLUDE_DIRS})
 
+link_directories(
+	include
+	${PCL_LIBRARY_DIRS}
+)
 # 添加子目录
 add_subdirectory(tools)
 add_subdirectory(camera_model)
