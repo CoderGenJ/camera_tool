@@ -44,13 +44,14 @@ public:
   int getReloY() { return resolution_y_; }
 
   bool onImage(const Eigen::Vector2d &pt) const {
-    return pt.x() < resolution_x_ && pt.y() < resolution_y_;
+    return pt.x()<resolution_x_ && pt.x()> 0 && pt.y() < resolution_y_ &&
+           pt.y() > 0;
   }
 
 protected:
   std::vector<double> intrinsic_param_; //顺序:fx,fy,cx,cy
-  int resolution_x_;  //w
-  int resolution_y_;  //h
+  int resolution_x_;                    // w
+  int resolution_y_;                    // h
 };
 
 /// @brief 针孔摄像头

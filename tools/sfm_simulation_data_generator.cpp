@@ -37,7 +37,7 @@ void projectMarkerMap(
     const Eigen::Matrix4d &pose,
     const std::vector<std::pair<int, std::vector<Eigen::Vector3d>>> &marker_map,
     std::shared_ptr<CameraModelNS::CameraModel> camera_model,
-    std::vector<std::pair<int, std::vector<Eigen::Vector2d>>> project_pt);
+    std::vector<std::pair<int, std::vector<Eigen::Vector2d>>> &project_pt);
 void drawPointsOnImage(
     const std::vector<std::pair<int, std::vector<Eigen::Vector2d>>> &project_pt,
     int w, int h, const std::string &save_path);
@@ -62,7 +62,9 @@ int main() {
     }
     pointcloud->width = 1;
     pointcloud->height = pointcloud->points.size();
-    pcl::io::savePCDFileASCII("/home/eric/workspace/camera_tool/temp_data/marker_map.pcd", *pointcloud);
+    pcl::io::savePCDFileASCII(
+        "/home/eric/workspace/camera_tool/temp_data/marker_map.pcd",
+        *pointcloud);
   }
   // 2.生成pose序列
   std::vector<Eigen::Matrix4d> poses;
@@ -73,18 +75,23 @@ int main() {
   std::vector<double> intrinsic_param{517.306408, 516.469215, 318.643040,
                                       255.313989};
   std::vector<double> distort_param{0.0, 0.0, 0.0, 0.0, 0.0};
-  double resolution_w = 640;
-  double resolution_h = 480;
+  double resolution_w = 1920;
+  double resolution_h = 1080;
   auto camera_model_ptr = CameraModelNS::CameraFactory::createCamera(
       "Pinhole", intrinsic_param, resolution_w, resolution_h, distort_param);
   size_t counter = 0;
   for (const auto &pose : poses) {
     std::vector<std::pair<int, std::vector<Eigen::Vector2d>>> project_pt;
-    projectMarkerMap(pose, marker_map, camera_model_ptr, project_pt);
+    projectMarkerMap(pose.inverse(), marker_map, camera_model_ptr, project_pt);
     if (debug) {
-      drawPointsOnImage(project_pt, camera_model_ptr->getReloX(),
-                        camera_model_ptr->getReloY(),
-                        "/home/eric/workspace/camera_tool/temp_data/" + std::to_string(counter) + ".png");
+      if (!project_pt.empty()) {
+        drawPointsOnImage(project_pt, camera_model_ptr->getReloX(),
+                          camera_model_ptr->getReloY(),
+                          "/home/eric/workspace/camera_tool/temp_data/" +
+                              std::to_string(counter) + ".png");
+      } else {
+        std::cout << "this image all out of range" << std::endl;
+      }
       counter++;
     }
   }
@@ -156,7 +163,7 @@ void projectMarkerMap(
     const Eigen::Matrix4d &pose,
     const std::vector<std::pair<int, std::vector<Eigen::Vector3d>>> &marker_map,
     std::shared_ptr<CameraModelNS::CameraModel> camera_model,
-    std::vector<std::pair<int, std::vector<Eigen::Vector2d>>> project_pt) {
+    std::vector<std::pair<int, std::vector<Eigen::Vector2d>>> &project_pt) {
   for (const auto &marker : marker_map) {
     std::vector<Eigen::Vector2d> proj_pt;
     bool all_pt_on_img = true;
@@ -166,6 +173,7 @@ void projectMarkerMap(
       auto pt_img = camera_model->project(pt_in_cam);
       if (!camera_model->onImage(pt_img)) {
         all_pt_on_img = false;
+        std::cout << "pt out of range" << std::endl;
         break;
       }
       proj_pt.push_back(pt_img);

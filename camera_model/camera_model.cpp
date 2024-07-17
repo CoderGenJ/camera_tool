@@ -7,7 +7,7 @@ Eigen::Vector2d
 PinholeCameraModel::project(const Eigen::Vector3d &point_in_camera) const {
   Eigen::Vector2d pt_image{0.0, 0.0};
   double x = 0, y = 0;
-  if (std::abs(point_in_camera.z() < 0.001)) {
+  if (std::abs(point_in_camera.z()) < 0.001) {
     x = std::numeric_limits<double>::infinity();
     y = std::numeric_limits<double>::infinity();
   } else {
