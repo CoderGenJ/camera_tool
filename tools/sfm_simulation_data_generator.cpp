@@ -28,7 +28,7 @@ void generatePose(std::vector<Eigen::Matrix4d> &poses);
 void projectMarkerMap(
     const Eigen::Matrix4d &pose,
     const std::vector<std::pair<int, std::vector<Eigen::Vector3d>>> &marker_map,
-    const CameraModelNS::CameraModel camera_model,
+    CameraModelNS::CameraModel *camera_model,
     std::vector<std::pair<int, std::vector<Eigen::Vector2d>>> project_pt);
 
 int main() {
@@ -116,7 +116,7 @@ void generateMarkerMap(
 void projectMarkerMap(
     const Eigen::Matrix4d &pose,
     const std::vector<std::pair<int, std::vector<Eigen::Vector3d>>> &marker_map,
-    const CameraModelNS::CameraModel camera_model,
+    CameraModelNS::CameraModel *camera_model,
     std::vector<std::pair<int, std::vector<Eigen::Vector2d>>> project_pt) {
   for (const auto &marker : marker_map) {
     std::vector<Eigen::Vector2d> proj_pt;
@@ -124,8 +124,8 @@ void projectMarkerMap(
     for (const auto &pt : marker.second) {
       Eigen::Vector3d pt_in_cam =
           pose.block<3, 3>(0, 0) * pt + pose.block<3, 1>(0, 3);
-      auto pt_img = camera_model.project(pt_in_cam);
-      if (!camera_model.onImage(pt_img)) {
+      auto pt_img = camera_model->project(pt_in_cam);
+      if (!camera_model->onImage(pt_img)) {
         all_pt_on_img = false;
         break;
       }
@@ -137,7 +137,4 @@ void projectMarkerMap(
   }
 }
 //向前,走直线
-void generatePose(std::vector<Eigen::Matrix4d> &poses) {
-  
-
-}
+void generatePose(std::vector<Eigen::Matrix4d> &poses) {}

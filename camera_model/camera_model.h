@@ -43,7 +43,7 @@ public:
   int getReloX() { return resolution_x_; }
   int getReloY() { return resolution_y_; }
 
-  bool onImage(const Eigen::Vector2d &pt) {
+  bool onImage(const Eigen::Vector2d &pt) const {
     return pt.x() < resolution_x_ && pt.y() < resolution_y_;
   }
 

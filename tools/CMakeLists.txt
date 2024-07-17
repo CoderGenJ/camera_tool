@@ -15,3 +15,6 @@ target_link_libraries(sfm_tool sfm yaml-cpp dir_common)
 add_executable(sfm_simulation_data_generator sfm_simulation_data_generator.cpp)
 target_link_libraries(sfm_simulation_data_generator sfm yaml-cpp dir_common  ${PCL_LIBRARIES} camera_model)
 
+add_executable(pose_viewer pose_viewer.cpp)
+target_link_libraries(pose_viewer ${PCL_LIBRARIES} Eigen3::Eigen)
+
