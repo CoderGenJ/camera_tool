@@ -11,6 +11,14 @@
 #include "camera_model.h"
 // MarkerData
 double marker_width = 0.5;
+std::map<int, cv::Scalar> colorMap = {
+    {0, cv::Scalar(255, 0, 0)},   // 红色
+    {1, cv::Scalar(0, 255, 0)},   // 绿色
+    {2, cv::Scalar(0, 0, 255)},   // 蓝色
+    {3, cv::Scalar(255, 255, 0)}, // 青色
+    {4, cv::Scalar(255, 0, 255)}, // 洋红色
+    {5, cv::Scalar(0, 255, 255)}  // 黄色
+};
 /// @brief 生成marker 3d 顺序为:左上右下,坐标系:右手坐标系,x轴向前,Z垂直纸面向外
 /// @param marker_3d_pt
 void generateMarker3dPoint(std::vector<Eigen::Vector3d> &marker_3d_pt);
@@ -28,27 +36,58 @@ void generatePose(std::vector<Eigen::Matrix4d> &poses);
 void projectMarkerMap(
     const Eigen::Matrix4d &pose,
     const std::vector<std::pair<int, std::vector<Eigen::Vector3d>>> &marker_map,
-    CameraModelNS::CameraModel *camera_model,
+    std::shared_ptr<CameraModelNS::CameraModel> camera_model,
     std::vector<std::pair<int, std::vector<Eigen::Vector2d>>> project_pt);
+void drawPointsOnImage(
+    const std::vector<std::pair<int, std::vector<Eigen::Vector2d>>> &project_pt,
+    int w, int h, const std::string &save_path);
 
 int main() {
+  bool debug = true;
+  // 1.生成marker map
   std::vector<std::pair<int, std::vector<Eigen::Vector3d>>> marker_map;
   generateMarkerMap(marker_map);
-  pcl::PointCloud<pcl::PointXYZ>::Ptr pointcloud(
-      new pcl::PointCloud<pcl::PointXYZ>());
-  for (const auto &marker : marker_map) {
-    const auto &pts = marker.second;
-    for (const auto &pt : pts) {
-      pcl::PointXYZ pt_pd;
-      pt_pd.x = pt.x();
-      pt_pd.y = pt.y();
-      pt_pd.z = pt.z();
-      pointcloud->points.push_back(pt_pd);
+  if (debug) {
+    pcl::PointCloud<pcl::PointXYZ>::Ptr pointcloud(
+        new pcl::PointCloud<pcl::PointXYZ>());
+    for (const auto &marker : marker_map) {
+      const auto &pts = marker.second;
+      for (const auto &pt : pts) {
+        pcl::PointXYZ pt_pd;
+        pt_pd.x = pt.x();
+        pt_pd.y = pt.y();
+        pt_pd.z = pt.z();
+        pointcloud->points.push_back(pt_pd);
+      }
+    }
+    pointcloud->width = 1;
+    pointcloud->height = pointcloud->points.size();
+    pcl::io::savePCDFileASCII("/home/eric/workspace/camera_tool/temp_data/marker_map.pcd", *pointcloud);
+  }
+  // 2.生成pose序列
+  std::vector<Eigen::Matrix4d> poses;
+  //可视化可以用 pose_viewer的中工具查看相机视角和marker的关系
+  generatePose(poses);
+  // 3.生成 marker封装数据
+  //采用了TUM中的相机参数,不考虑畸变
+  std::vector<double> intrinsic_param{517.306408, 516.469215, 318.643040,
+                                      255.313989};
+  std::vector<double> distort_param{0.0, 0.0, 0.0, 0.0, 0.0};
+  double resolution_w = 640;
+  double resolution_h = 480;
+  auto camera_model_ptr = CameraModelNS::CameraFactory::createCamera(
+      "Pinhole", intrinsic_param, resolution_w, resolution_h, distort_param);
+  size_t counter = 0;
+  for (const auto &pose : poses) {
+    std::vector<std::pair<int, std::vector<Eigen::Vector2d>>> project_pt;
+    projectMarkerMap(pose, marker_map, camera_model_ptr, project_pt);
+    if (debug) {
+      drawPointsOnImage(project_pt, camera_model_ptr->getReloX(),
+                        camera_model_ptr->getReloY(),
+                        "/home/eric/workspace/camera_tool/temp_data/" + std::to_string(counter) + ".png");
+      counter++;
     }
   }
-  pointcloud->width = 1;
-  pointcloud->height = pointcloud->points.size();
-  pcl::io::savePCDFileASCII("/home/eric/marker_map.pcd", *pointcloud);
 
   return 0;
 }
@@ -116,7 +155,7 @@ void generateMarkerMap(
 void projectMarkerMap(
     const Eigen::Matrix4d &pose,
     const std::vector<std::pair<int, std::vector<Eigen::Vector3d>>> &marker_map,
-    CameraModelNS::CameraModel *camera_model,
+    std::shared_ptr<CameraModelNS::CameraModel> camera_model,
     std::vector<std::pair<int, std::vector<Eigen::Vector2d>>> project_pt) {
   for (const auto &marker : marker_map) {
     std::vector<Eigen::Vector2d> proj_pt;
@@ -137,4 +176,38 @@ void projectMarkerMap(
   }
 }
 //向前,走直线
-void generatePose(std::vector<Eigen::Matrix4d> &poses) {}
+void generatePose(std::vector<Eigen::Matrix4d> &poses) {
+  for (size_t i = 0; i < 10; ++i) {
+    Eigen::Matrix4d pose = Eigen::Matrix4d::Identity();
+    pose(0, 3) = i * 0.5;
+    pose(1, 3) = sin(i * 0.5);
+    pose(2, 3) = cos(i * 0.5);
+    // 随机生成四元数
+    Eigen::Quaterniond q;
+    q = Eigen::AngleAxisd(i * 0.1, Eigen::Vector3d::UnitX()) *
+        Eigen::AngleAxisd(M_PI / 2.0, Eigen::Vector3d::UnitY()) *
+        Eigen::AngleAxisd(i * 0.1, Eigen::Vector3d::UnitZ());
+    pose.block<3, 3>(0, 0) = q.toRotationMatrix();
+    poses.push_back(pose);
+  }
+}
+
+void drawPointsOnImage(
+    const std::vector<std::pair<int, std::vector<Eigen::Vector2d>>> &project_pt,
+    int w, int h, const std::string &save_path) {
+  // 创建白色背景图像
+  cv::Mat image(h, w, CV_8UC3, cv::Scalar(255, 255, 255));
+  // 遍历数据并绘制点
+  for (const auto &pair : project_pt) {
+    int label = pair.first;
+    const std::vector<Eigen::Vector2d> &points = pair.second;
+    // 获取颜色
+    cv::Scalar color = colorMap[label % colorMap.size()];
+    // 绘制每个点
+    for (const auto &point : points) {
+      cv::circle(image, cv::Point(point.x(), point.y()), 3, color, -1);
+    }
+  }
+  // 显示图像
+  cv::imwrite(save_path, image);
+}

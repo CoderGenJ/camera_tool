@@ -49,8 +49,8 @@ public:
 
 protected:
   std::vector<double> intrinsic_param_; //顺序:fx,fy,cx,cy
-  int resolution_x_;
-  int resolution_y_;
+  int resolution_x_;  //w
+  int resolution_y_;  //h
 };
 
 /// @brief 针孔摄像头
