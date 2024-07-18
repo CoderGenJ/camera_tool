@@ -4,7 +4,8 @@
 #include <yaml-cpp/yaml.h>
 int main() {
   // 1.读取相机内参和畸变参数
-  std::string camera_yaml_file = "";
+  std::string camera_yaml_file =
+      "/home/eric/workspace/camera_tool/camera_model/pinhole.yaml";
   YAML::Node config = YAML::LoadFile(camera_yaml_file);
   std::string model_name = config["model_name"].as<std::string>();
   std::vector<double> intrinsic_param =
@@ -13,16 +14,15 @@ int main() {
       config["distorted_param"].as<std::vector<double>>();
   int resolution_w = config["resolution_w"].as<int>();
   int resolution_h = config["resolution_h"].as<int>();
-
+  // 2.构建sfm config
   SFM::structureFromMotionConfig sfm_config;
   sfm_config.reso_x = static_cast<double>(resolution_w);
   sfm_config.reso_y = static_cast<double>(resolution_h);
   sfm_config.camera_type = model_name;
   sfm_config.distorted_param = distorted_param;
   sfm_config.intrin_param = intrinsic_param;
-
   SFM::structureFromMotion sfm(sfm_config);
-  // 2.循环插入图片
+  // 3.插入marker的数据到sfm中
   bool actul_data = true;
   if (actul_data) {
     std::string img_dir = "";
@@ -58,9 +58,10 @@ int main() {
       sfm.insertMarkerData(marker_data);
     }
   }
-  // 3.处理sfm
+  // 4.处理sfm
   sfm.optiPoseGraph();
   sfm.constructMap();
   sfm.fullBundleAdjustment();
+  // 5.[TODO] 评估结果
   return 0;
 }
