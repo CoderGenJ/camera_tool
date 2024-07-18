@@ -1,48 +1,10 @@
-/*
-    本工具用于生成SFM得仿真数据,主要为一个marker地图以及一系列相机姿态
-*/
-
-#include <Eigen/Dense>
-#include <pcl/io/pcd_io.h>
-#include <pcl/point_cloud.h>
-#include <pcl/point_types.h>
-#include <vector>
-
+#include "sfm_simulation_data_generator.h"
 #include "camera_model.h"
 // MarkerData
-double marker_width = 0.5;
-std::map<int, cv::Scalar> colorMap = {
-    {0, cv::Scalar(255, 0, 0)},   // 红色
-    {1, cv::Scalar(0, 255, 0)},   // 绿色
-    {2, cv::Scalar(0, 0, 255)},   // 蓝色
-    {3, cv::Scalar(255, 255, 0)}, // 青色
-    {4, cv::Scalar(255, 0, 255)}, // 洋红色
-    {5, cv::Scalar(0, 255, 255)}  // 黄色
-};
-/// @brief 生成marker 3d 顺序为:左上右下,坐标系:右手坐标系,x轴向前,Z垂直纸面向外
-/// @param marker_3d_pt
-void generateMarker3dPoint(std::vector<Eigen::Vector3d> &marker_3d_pt);
 
-/// @brief 生成marker得姿态
-/// @param pose_info x,y,z,roll,pitch,yaw
-/// @param marker_pose
-void generateMarkerPose(const std::vector<std::vector<double>> &pose_infos,
-                        std::vector<Eigen::Matrix4d> &marker_pose);
 
-void generateMarkerMap(
-    std::vector<std::pair<int, std::vector<Eigen::Vector3d>>> &marker_map);
-
-void generatePose(std::vector<Eigen::Matrix4d> &poses);
-void projectMarkerMap(
-    const Eigen::Matrix4d &pose,
-    const std::vector<std::pair<int, std::vector<Eigen::Vector3d>>> &marker_map,
-    std::shared_ptr<CameraModelNS::CameraModel> camera_model,
-    std::vector<std::pair<int, std::vector<Eigen::Vector2d>>> &project_pt);
-void drawPointsOnImage(
-    const std::vector<std::pair<int, std::vector<Eigen::Vector2d>>> &project_pt,
-    int w, int h, const std::string &save_path);
-
-int main() {
+namespace data_gen {
+void SfmDataGenerator::generateData() {
   bool debug = true;
   // 1.生成marker map
   std::vector<std::pair<int, std::vector<Eigen::Vector3d>>> marker_map;
@@ -95,20 +57,20 @@ int main() {
       counter++;
     }
   }
-
-  return 0;
 }
 
-void generateMarker3dPoint(std::vector<Eigen::Vector3d> &marker_3d_pt) {
-  double coor_width = marker_width * cos(M_PI / 4.0);
+void SfmDataGenerator::generateMarker3dPoint(
+    std::vector<Eigen::Vector3d> &marker_3d_pt) {
+  double coor_width = config_.marker_width * cos(M_PI / 4.0);
   marker_3d_pt.push_back(Eigen::Vector3d{0.0, coor_width, 0.0});
   marker_3d_pt.push_back(Eigen::Vector3d{coor_width, 0.0, 0.0});
   marker_3d_pt.push_back(Eigen::Vector3d{0.0, -1.0 * coor_width, 0.0});
   marker_3d_pt.push_back(Eigen::Vector3d{-1.0 * coor_width, 0.0, 0.0});
 }
 
-void generateMarkerPose(const std::vector<std::vector<double>> &pose_infos,
-                        std::vector<Eigen::Matrix4d> &marker_pose) {
+void SfmDataGenerator::generateMarkerPose(
+    const std::vector<std::vector<double>> &pose_infos,
+    std::vector<Eigen::Matrix4d> &marker_pose) {
   for (const auto &pose_info : pose_infos) {
     Eigen::Matrix4d pose(Eigen::Matrix4d::Identity());
     Eigen::AngleAxisd rotationX(pose_info[3], Eigen::Vector3d::UnitX());
@@ -122,7 +84,7 @@ void generateMarkerPose(const std::vector<std::vector<double>> &pose_infos,
   }
 }
 
-void generateMarkerMap(
+void SfmDataGenerator::generateMarkerMap(
     std::vector<std::pair<int, std::vector<Eigen::Vector3d>>> &marker_map) {
   std::vector<std::vector<double>> pose_infos;
   pose_infos.push_back(
@@ -159,7 +121,7 @@ void generateMarkerMap(
   }
 }
 
-void projectMarkerMap(
+void SfmDataGenerator::projectMarkerMap(
     const Eigen::Matrix4d &pose,
     const std::vector<std::pair<int, std::vector<Eigen::Vector3d>>> &marker_map,
     std::shared_ptr<CameraModelNS::CameraModel> camera_model,
@@ -183,8 +145,9 @@ void projectMarkerMap(
     }
   }
 }
-//向前,走直线
-void generatePose(std::vector<Eigen::Matrix4d> &poses) {
+//从高处到低的s形状
+// pose为:T_map_cam_n
+void SfmDataGenerator::generatePose(std::vector<Eigen::Matrix4d> &poses) {
   for (size_t i = 0; i < 10; ++i) {
     Eigen::Matrix4d pose = Eigen::Matrix4d::Identity();
     pose(0, 3) = i * 0.5;
@@ -200,7 +163,7 @@ void generatePose(std::vector<Eigen::Matrix4d> &poses) {
   }
 }
 
-void drawPointsOnImage(
+void SfmDataGenerator::drawPointsOnImage(
     const std::vector<std::pair<int, std::vector<Eigen::Vector2d>>> &project_pt,
     int w, int h, const std::string &save_path) {
   // 创建白色背景图像
@@ -219,3 +182,4 @@ void drawPointsOnImage(
   // 显示图像
   cv::imwrite(save_path, image);
 }
+} // namespace data_gen
