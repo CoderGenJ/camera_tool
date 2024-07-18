@@ -2,13 +2,13 @@
     本工具用于生成SFM得仿真数据,主要为一个marker地图以及一系列相机姿态
 */
 
+#include "camera_model.h"
+#include "marker_detector.h"
 #include <Eigen/Dense>
 #include <pcl/io/pcd_io.h>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 #include <vector>
-
-#include "camera_model.h"
 // MarkerData
 std::map<int, cv::Scalar> colorMap = {
     {0, cv::Scalar(255, 0, 0)},   // 红色
@@ -20,7 +20,20 @@ std::map<int, cv::Scalar> colorMap = {
 };
 namespace data_gen {
 struct SfmDataGeneratorConfig {
+  SfmDataGeneratorConfig() {}
   double marker_width = 0.5;
+  bool debug = false;
+  size_t pose_num = 20;
+  // camear param
+  //采用了TUM中的相机参数,不考虑畸变
+  std::string camera_type = "Pinhole";
+  std::vector<double> intrinsic_param{517.306408, 516.469215, 318.643040,
+                                      255.313989};
+  std::vector<double> distort_param{0.0, 0.0, 0.0, 0.0, 0.0};
+  double resolution_w = 1920;
+  double resolution_h = 1080;
+  // output
+  std::string output_path = "/home/eric/workspace/camera_tool/temp_data/";
 };
 
 class SfmDataGenerator {
@@ -53,7 +66,7 @@ public:
           &project_pt,
       int w, int h, const std::string &save_path);
   //生成marker数据
-  void generateData();
+  void generateData(std::vector<MarkerDetector::MarkerData> &marker_datas);
 
 private:
   SfmDataGeneratorConfig config_;

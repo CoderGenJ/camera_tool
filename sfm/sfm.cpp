@@ -1,11 +1,16 @@
 #include "sfm.h"
 namespace SFM {
 
-void structureFromMotion::extractMarker(cv::Mat img) {
-  MarkerDetector::MarkerData marker_data;
-  if (!marker_detector_ptr_->detectMarker(img, marker_data)) {
-    return;
+bool structureFromMotion::detectMarker(cv::Mat img,
+                                       MarkerDetector::MarkerData &output) {
+  if (!marker_detector_ptr_->detectMarker(img, output)) {
+    return false;
   }
+  return true;
+}
+
+void structureFromMotion::insertMarkerData(
+    const MarkerDetector::MarkerData &marker_data) {
   //初始化图片编号
   ImgNode img_node;
   img_node.index = index_;

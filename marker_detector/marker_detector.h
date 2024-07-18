@@ -1,7 +1,9 @@
+#pragma once
 #include <iomanip>
 #include <iostream>
 
 #include "opencv2/opencv.hpp"
+#include <Eigen/Dense>
 
 extern "C" {
 #include "apriltag.h"
@@ -19,6 +21,16 @@ namespace MarkerDetector {
 
 struct MarkerData {
   MarkerData() {}
+  MarkerData(
+      const std::vector<std::pair<int, std::vector<Eigen::Vector2d>>> &data) {
+    for (const auto &item : data) {
+      std::vector<cv::Point2d> markers_cvpts;
+      for (const auto &marker : item.second) {
+        markers_cvpts.push_back(cv::Point2d(marker.x(), marker.y()));
+      }
+      id_marker_corners.push_back(std::make_pair(item.first, markers_cvpts));
+    }
+  }
   // marker id , marker_2d in image
   std::vector<std::pair<int, std::vector<cv::Point2d>>> id_marker_corners;
 };
@@ -45,7 +57,7 @@ struct ApriltagMarkerDetectorConfig {
   std::string family;
   float quad_decimate;
   float quad_sigma;
-  int nthreads=1;
+  int nthreads = 1;
   bool debug;
   bool refine_edges;
 };

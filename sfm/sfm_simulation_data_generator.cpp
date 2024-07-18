@@ -2,14 +2,13 @@
 #include "camera_model.h"
 // MarkerData
 
-
 namespace data_gen {
-void SfmDataGenerator::generateData() {
-  bool debug = true;
+void SfmDataGenerator::generateData(
+    std::vector<MarkerDetector::MarkerData> &marker_datas) {
   // 1.生成marker map
   std::vector<std::pair<int, std::vector<Eigen::Vector3d>>> marker_map;
   generateMarkerMap(marker_map);
-  if (debug) {
+  if (config_.debug) {
     pcl::PointCloud<pcl::PointXYZ>::Ptr pointcloud(
         new pcl::PointCloud<pcl::PointXYZ>());
     for (const auto &marker : marker_map) {
@@ -24,33 +23,28 @@ void SfmDataGenerator::generateData() {
     }
     pointcloud->width = 1;
     pointcloud->height = pointcloud->points.size();
-    pcl::io::savePCDFileASCII(
-        "/home/eric/workspace/camera_tool/temp_data/marker_map.pcd",
-        *pointcloud);
+    pcl::io::savePCDFileASCII(config_.output_path + "marker_map.pcd",
+                              *pointcloud);
   }
   // 2.生成pose序列
   std::vector<Eigen::Matrix4d> poses;
   //可视化可以用 pose_viewer的中工具查看相机视角和marker的关系
   generatePose(poses);
   // 3.生成 marker封装数据
-  //采用了TUM中的相机参数,不考虑畸变
-  std::vector<double> intrinsic_param{517.306408, 516.469215, 318.643040,
-                                      255.313989};
-  std::vector<double> distort_param{0.0, 0.0, 0.0, 0.0, 0.0};
-  double resolution_w = 1920;
-  double resolution_h = 1080;
   auto camera_model_ptr = CameraModelNS::CameraFactory::createCamera(
-      "Pinhole", intrinsic_param, resolution_w, resolution_h, distort_param);
+      config_.camera_type, config_.intrinsic_param, config_.resolution_w,
+      config_.resolution_h, config_.distort_param);
   size_t counter = 0;
   for (const auto &pose : poses) {
     std::vector<std::pair<int, std::vector<Eigen::Vector2d>>> project_pt;
     projectMarkerMap(pose.inverse(), marker_map, camera_model_ptr, project_pt);
-    if (debug) {
+    marker_datas.push_back(MarkerDetector::MarkerData(project_pt));
+    if (config_.debug) {
       if (!project_pt.empty()) {
         drawPointsOnImage(project_pt, camera_model_ptr->getReloX(),
                           camera_model_ptr->getReloY(),
-                          "/home/eric/workspace/camera_tool/temp_data/" +
-                              std::to_string(counter) + ".png");
+                          config_.output_path + std::to_string(counter) +
+                              ".png");
       } else {
         std::cout << "this image all out of range" << std::endl;
       }
@@ -148,7 +142,7 @@ void SfmDataGenerator::projectMarkerMap(
 //从高处到低的s形状
 // pose为:T_map_cam_n
 void SfmDataGenerator::generatePose(std::vector<Eigen::Matrix4d> &poses) {
-  for (size_t i = 0; i < 10; ++i) {
+  for (size_t i = 0; i < config_.pose_num; ++i) {
     Eigen::Matrix4d pose = Eigen::Matrix4d::Identity();
     pose(0, 3) = i * 0.5;
     pose(1, 3) = sin(i * 0.5);

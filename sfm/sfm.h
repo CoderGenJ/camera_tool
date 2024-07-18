@@ -72,7 +72,10 @@ public:
   }
   /// @brief 从图片中提取marker
   /// @param img
-  void extractMarker(cv::Mat img);
+  bool detectMarker(cv::Mat img, MarkerDetector::MarkerData &output);
+
+  /// @brief 将marker data插入到graph中
+  void insertMarkerData(const MarkerDetector::MarkerData &marker_data);
 
   /// @brief 优化图像之间的pose graph地图,得出一系列pose
   /// @return

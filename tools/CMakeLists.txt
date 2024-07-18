@@ -10,7 +10,7 @@ include_directories(${CMAKE_SOURCE_DIR}/pnp_solver)
 add_executable(camera_calibration_tool camera_calibration_tool.cpp)
 target_link_libraries(camera_calibration_tool ${OpenCV_LIBS} Eigen3::Eigen yaml-cpp calibration_model dir_common)
 add_executable(sfm_tool sfm_tool.cpp)
-target_link_libraries(sfm_tool sfm yaml-cpp dir_common)
+target_link_libraries(sfm_tool sfm yaml-cpp dir_common sfm_simulation_data_generator)
 
 add_executable(pose_viewer pose_viewer.cpp)
 target_link_libraries(pose_viewer ${PCL_LIBRARIES} Eigen3::Eigen)
