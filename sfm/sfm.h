@@ -68,7 +68,11 @@ public:
       }
       return false;
     };
-    // todo:添加board_corners_
+    double coor_width = config_.marker_width_m * cos(M_PI / 4.0);
+    board_corners_.push_back(cv::Point3d{0.0, coor_width, 0.0});
+    board_corners_.push_back(cv::Point3d{coor_width, 0.0, 0.0});
+    board_corners_.push_back(cv::Point3d{0.0, -1.0 * coor_width, 0.0});
+    board_corners_.push_back(cv::Point3d{-1.0 * coor_width, 0.0, 0.0});
   }
   /// @brief 从图片中提取marker
   /// @param img

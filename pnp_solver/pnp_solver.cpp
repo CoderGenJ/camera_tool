@@ -4,32 +4,35 @@ namespace pnp_sovler {
 
 bool PnPSolver::solvePnP(
     const std::vector<data_common::Point3d2dPair> &pt_3d_2d_pairs,
-    Eigen::Matrix4d &output_rlt) {
+    Eigen::Matrix4d &inoutput_rlt) {
   if (pt_3d_2d_pairs.size() < config_.min_size) {
-    std::cout << "" << std::endl;
+    std::cout << "pnp failed,the pt pairs < " << config_.min_size << std::endl;
     return false;
   }
+  // 1.处理初值
+  Eigen::Quaterniond q_init(inoutput_rlt.block<3, 3>(0, 0));
+  double R_camera_ref[4];
+  double trans_camera_ref[3];
+  R_camera_ref[0] = q_init.w();
+  R_camera_ref[1] = q_init.x();
+  R_camera_ref[2] = q_init.y();
+  R_camera_ref[3] = q_init.z();
+  trans_camera_ref[0] = inoutput_rlt(0, 3);
+  trans_camera_ref[1] = inoutput_rlt(1, 3);
+  trans_camera_ref[2] = inoutput_rlt(2, 3);
+  // 2.构建ceres求解
   //构建ceres
   ceres::Problem problem;
   ceres::LocalParameterization *quatParam =
       new ceres::QuaternionParameterization();
   // Define Loss function
   ceres::LossFunction *loss_function = new ceres::CauchyLoss(1);
-  double R_camera_ref[4];
-  double trans_camera_ref[3];
-  R_camera_ref[0] = 1.0;
-  R_camera_ref[1] = 0;
-  R_camera_ref[2] = 0;
-  R_camera_ref[3] = 0;
-  trans_camera_ref[0] = 0.0;
-  trans_camera_ref[1] = 0.0;
-  trans_camera_ref[2] = 0.0;
   problem.AddParameterBlock(R_camera_ref, 4, quatParam);
   problem.AddParameterBlock(trans_camera_ref, 3);
   for (auto pair : pt_3d_2d_pairs) {
     problem.AddResidualBlock(
         ceres_factor::ReprojectErrorFactor::Create(camera_model_ptr_, pair),
-        loss_function, R_camera_ref, trans_camera_ref);
+        nullptr, R_camera_ref, trans_camera_ref);
   }
   ceres::Solver::Options options;
   options.linear_solver_type = ceres::DENSE_SCHUR;
@@ -45,16 +48,16 @@ bool PnPSolver::solvePnP(
                            R_camera_ref[3]};
   Eigen::Vector3d trans_rlt{trans_camera_ref[0], trans_camera_ref[1],
                             trans_camera_ref[2]};
-  output_rlt = Eigen::Matrix4d::Identity();
-  output_rlt.block<3, 3>(0, 0) = q_rlt.toRotationMatrix();
-  output_rlt.block<3, 1>(0, 3) = trans_rlt;
+  inoutput_rlt = Eigen::Matrix4d::Identity();
+  inoutput_rlt.block<3, 3>(0, 0) = q_rlt.toRotationMatrix();
+  inoutput_rlt.block<3, 1>(0, 3) = trans_rlt;
   //结果检测
   double pixel_diff = 0.0;
   for (const auto &pt3d2d : pt_3d_2d_pairs) {
     Eigen::Vector3d pt3d_in_cam =
-        output_rlt.block<3, 3>(0, 0) *
+        inoutput_rlt.block<3, 3>(0, 0) *
             Eigen::Vector3d{pt3d2d.pt3d.x, pt3d2d.pt3d.y, pt3d2d.pt3d.z} +
-        output_rlt.block<3, 1>(0, 3);
+        inoutput_rlt.block<3, 1>(0, 3);
     Eigen::Vector2d pt2d = camera_model_ptr_->project(pt3d_in_cam);
     double delta_x = pt3d2d.pt2d.x - pt2d.x();
     double delta_y = pt3d2d.pt2d.y - pt2d.y();

@@ -21,9 +21,10 @@ int main() {
   sfm_config.camera_type = model_name;
   sfm_config.distorted_param = distorted_param;
   sfm_config.intrin_param = intrinsic_param;
+  sfm_config.apritag_config.family = "tag36h11";
   SFM::structureFromMotion sfm(sfm_config);
   // 3.插入marker的数据到sfm中
-  bool actul_data = true;
+  bool actul_data = false;
   if (actul_data) {
     std::string img_dir = "";
     std::vector<std::string> file_paths;

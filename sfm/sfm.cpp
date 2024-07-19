@@ -18,7 +18,7 @@ void structureFromMotion::insertMarkerData(
   // 遍历提取marker的信息
   for (const auto &marker_item : marker_data.id_marker_corners) {
     auto id = marker_item.first;
-    auto marker_2ds = marker_item.second;
+    auto &marker_2ds = marker_item.second;
     std::vector<data_common::Point3d2dPair> pairs;
     for (size_t i = 0; i < marker_2ds.size(); ++i) {
       pairs.push_back(
@@ -30,10 +30,11 @@ void structureFromMotion::insertMarkerData(
     }
     co_vis_[id].push_back(img_node.index);
 
-    Eigen::Matrix4d T_cam_board;
+    Eigen::Matrix4d T_cam_board = Eigen::Matrix4d::Identity();
     if (!pnp_sovler_ptr_->solvePnP(pairs, T_cam_board)) {
       continue;
     }
+    break;
     MarkerImgItem marker_img_item;
     for (size_t j = 0; j < board_corners_.size(); ++j) {
       auto &board_corner = board_corners_.at(j);

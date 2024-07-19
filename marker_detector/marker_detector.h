@@ -88,6 +88,7 @@ public:
     } else {
       printf("Unrecognized tag family name. Use e.g. \"tag36h11\".\n");
     }
+    td_ = apriltag_detector_create();
     apriltag_detector_add_family(td_, tf_);
 
     td_->quad_decimate = config_.quad_decimate;

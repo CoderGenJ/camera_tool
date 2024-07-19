@@ -7,6 +7,10 @@ project(camera_tool VERSION 1.0)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
+set(CMAKE_BUILD_TYPE Debug)
+set(CMAKE_C_FLAGS_DEBUG "-g")
+set(CMAKE_CXX_FLAGS_DEBUG "-g")
+
 # 查找OpenCV库
 find_package(OpenCV REQUIRED)
 if (OpenCV_FOUND)

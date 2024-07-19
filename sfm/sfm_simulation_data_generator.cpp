@@ -129,7 +129,6 @@ void SfmDataGenerator::projectMarkerMap(
       auto pt_img = camera_model->project(pt_in_cam);
       if (!camera_model->onImage(pt_img)) {
         all_pt_on_img = false;
-        std::cout << "pt out of range" << std::endl;
         break;
       }
       proj_pt.push_back(pt_img);

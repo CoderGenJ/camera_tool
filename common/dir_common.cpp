@@ -16,6 +16,9 @@ bool is_directory(const std::string &path) {
 
 void traverse_directory(const std::string &dir_path,
                         std::vector<std::string> &file_list) {
+  if (dir_path.empty()) {
+    return;
+  }
   DIR *dir = opendir(dir_path.c_str());
   if (dir == nullptr) {
     std::cerr << "The path specified is not a valid directory: " << dir_path
