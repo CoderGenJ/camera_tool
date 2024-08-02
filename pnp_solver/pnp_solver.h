@@ -1,5 +1,6 @@
 #include "ceres_factor.hpp"
-
+#include <opencv2/opencv.hpp>
+#include <Eigen/Dense>
 namespace pnp_sovler {
 
 struct PnPSolverConfig {
@@ -17,11 +18,17 @@ public:
       : config_(config), camera_model_ptr_(camera_model_ptr) {}
 
   PnPSolver() {}
-  /// @brief
+  /// @brief 计算pnp问题使用ceres构建ba问题优化求解
   /// @param pt_3d_2d_pairs
   /// @param inoutput_rlt 输入的初始值
   /// @return
   bool solvePnP(const std::vector<data_common::Point3d2dPair> &pt_3d_2d_pairs,
+                Eigen::Matrix4d &inoutput_rlt);
+  /// @brief 计算pnp使用opencv提供的epnp接口
+  /// @param pt_3d_2d_pairs
+  /// @param inoutput_rlt 输入的初始值
+  /// @return
+  bool solvePnPOpencv(const std::vector<data_common::Point3d2dPair> &pt_3d_2d_pairs,
                 Eigen::Matrix4d &inoutput_rlt);
   bool checkRlt();
 

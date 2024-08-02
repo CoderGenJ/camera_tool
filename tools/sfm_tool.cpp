@@ -54,6 +54,7 @@ int main() {
     data_gen::SfmDataGenerator sfm_data_gner(data_gner_config);
     std::vector<MarkerDetector::MarkerData> marker_datas;
     sfm_data_gner.generateData(marker_datas);
+    std::cout << "marker img number:" << marker_datas.size() << std::endl;
     // 2.插入graph
     for (const auto &marker_data : marker_datas) {
       sfm.insertMarkerData(marker_data);
@@ -62,7 +63,7 @@ int main() {
   // 4.处理sfm
   sfm.optiPoseGraph();
   sfm.constructMap();
-  sfm.fullBundleAdjustment();
+  // sfm.fullBundleAdjustment();
   // 5.[TODO] 评估结果
   return 0;
 }

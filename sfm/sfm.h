@@ -4,6 +4,8 @@
 #include "pnp_solver.h"
 #include <functional>
 #include <opencv2/opencv.hpp>
+#include <pcl/io/pcd_io.h>
+#include <pcl/point_types.h>
 #include <unordered_map>
 #include <vector>
 namespace SFM {

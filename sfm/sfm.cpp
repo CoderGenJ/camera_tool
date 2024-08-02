@@ -31,10 +31,10 @@ void structureFromMotion::insertMarkerData(
     co_vis_[id].push_back(img_node.index);
 
     Eigen::Matrix4d T_cam_board = Eigen::Matrix4d::Identity();
-    if (!pnp_sovler_ptr_->solvePnP(pairs, T_cam_board)) {
+    if (!pnp_sovler_ptr_->solvePnPOpencv(pairs, T_cam_board)) {
+      std::cout << "index:" << img_node.index << " pnp failed" << std::endl;
       continue;
     }
-    break;
     MarkerImgItem marker_img_item;
     for (size_t j = 0; j < board_corners_.size(); ++j) {
       auto &board_corner = board_corners_.at(j);
@@ -57,6 +57,7 @@ void structureFromMotion::insertMarkerData(
 
 bool structureFromMotion::constructMap() {
   if (co_vis_.empty()) {
+    std::cout << "co vision is empty" << std::endl;
     return false;
   }
   // 1.遍历所有marker id
@@ -89,6 +90,19 @@ bool structureFromMotion::constructMap() {
     }
     map_.insert(std::make_pair(marker_id, marker_average_map));
   }
+
+  pcl::PointCloud<pcl::PointXYZ>::Ptr map_pcd(
+      new pcl::PointCloud<pcl::PointXYZ>);
+  for (auto iter = map_.begin(); iter != map_.end(); ++iter) {
+    for (const auto &pt : iter->second) {
+      pcl::PointXYZ pt_pcl{pt.x(), pt.y(), pt.z()};
+      map_pcd->points.push_back(pt_pcl);
+    }
+  }
+  map_pcd->height = 1;
+  map_pcd->width = map_pcd->points.size();
+  map_pcd->is_dense = true;
+  pcl::io::savePCDFileASCII("/home/eric/map_marker_construct.pcd", *map_pcd);
   return true;
 }
 
@@ -101,9 +115,12 @@ bool structureFromMotion::buildOptimizationProblem(ceres::Problem *problem) {
       new ceres::EigenQuaternionParameterization;
   const Eigen::Matrix<double, 6, 6> sqrt_information =
       Eigen::Matrix<double, 6, 6>::Identity().llt().matrixL();
-
+  int counter = 0;
+  std::cout << "co_vis_" << co_vis_.size() << std::endl;
   for (auto co_vis_iter = co_vis_.begin(); co_vis_iter != co_vis_.end();
        ++co_vis_iter) {
+    std::cout << counter << std::endl;
+    counter++;
     auto marker_id = co_vis_iter->first;
     for (size_t i = 0; i < co_vis_iter->second.size(); ++i) {
       auto &a_node = img_nodes_.at(i);

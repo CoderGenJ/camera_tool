@@ -38,13 +38,14 @@ void SfmDataGenerator::generateData(
   for (const auto &pose : poses) {
     std::vector<std::pair<int, std::vector<Eigen::Vector2d>>> project_pt;
     projectMarkerMap(pose.inverse(), marker_map, camera_model_ptr, project_pt);
-    marker_datas.push_back(MarkerDetector::MarkerData(project_pt));
+
     if (config_.debug) {
       if (!project_pt.empty()) {
         drawPointsOnImage(project_pt, camera_model_ptr->getReloX(),
                           camera_model_ptr->getReloY(),
                           config_.output_path + std::to_string(counter) +
                               ".png");
+        marker_datas.push_back(MarkerDetector::MarkerData(project_pt));
       } else {
         std::cout << "this image all out of range" << std::endl;
       }

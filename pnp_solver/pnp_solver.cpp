@@ -74,4 +74,48 @@ bool PnPSolver::solvePnP(
   return true;
 }
 
+bool PnPSolver::solvePnPOpencv(
+    const std::vector<data_common::Point3d2dPair> &pt_3d_2d_pairs,
+    Eigen::Matrix4d &inoutput_rlt) {
+  //构建opencv的3d 2d输入对
+  std::vector<cv::Point3d> objectPoints;
+  std::vector<cv::Point2d> imagePoints;
+  for (const auto &pair : pt_3d_2d_pairs) {
+    objectPoints.push_back(pair.pt3d);
+    imagePoints.push_back(pair.pt2d);
+  }
+  //构建相机矩阵,假设无畸变
+  auto intrinsic_param = camera_model_ptr_->getIntrinsicParam();
+  cv::Mat cameraMatrix =
+      (cv::Mat_<double>(3, 3) << intrinsic_param[0], 0, intrinsic_param[2], 0,
+       intrinsic_param[1], intrinsic_param[3], 0, 0, 1);
+  cv::Mat distCoeffs = cv::Mat::zeros(4, 1, CV_64F);
+  // pnp求解
+  cv::Mat rvec, tvec;
+  bool success = cv::solvePnP(objectPoints, imagePoints, cameraMatrix,
+                              distCoeffs, rvec, tvec, false, cv::SOLVEPNP_EPNP);
+  // 检查算法是否成功
+  if (success) {
+    cv::Mat rotationMatrix;
+    cv::Rodrigues(rvec, rotationMatrix);
+    // 将 OpenCV 的旋转矩阵和平移向量转换为 Eigen 矩阵
+    Eigen::Matrix3d rotationMatrixEigen;
+    Eigen::Vector3d translationVectorEigen;
+
+    for (int i = 0; i < 3; ++i) {
+      for (int j = 0; j < 3; ++j) {
+        rotationMatrixEigen(i, j) = rotationMatrix.at<double>(i, j);
+      }
+    }
+    for (int i = 0; i < 3; ++i) {
+      translationVectorEigen(i) = tvec.at<double>(i, 0);
+    }
+    inoutput_rlt.block<3, 3>(0, 0) = rotationMatrixEigen;
+    inoutput_rlt.block<3, 1>(0, 3) = translationVectorEigen;
+  } else {
+    std::cout << "EPnP 算法未能找到解决方案。" << std::endl;
+  }
+  return success;
+}
+
 } // namespace pnp_sovler
