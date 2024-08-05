@@ -1,11 +1,16 @@
+#pragma once
 #include "camera_model.h"
 #include "ceres_factor.hpp"
 #include "marker_detector.h"
 #include "pnp_solver.h"
+// #include "pose_evaluater.h"
+#include <Eigen/Dense>
+#include <Eigen/Geometry> // 用于四元数
 #include <functional>
 #include <opencv2/opencv.hpp>
 #include <pcl/io/pcd_io.h>
 #include <pcl/point_types.h>
+#include <pcl/visualization/pcl_visualizer.h>
 #include <unordered_map>
 #include <vector>
 namespace SFM {
@@ -99,6 +104,11 @@ public:
 
   /// @brief 全局优化,pose graph/map point
   bool buildBundleAdjustment(ceres::Problem *problem);
+
+  bool comparePoseList(const std::vector<Eigen::Matrix4d> &pose_list_1,
+                       const std::vector<Eigen::Matrix4d> &pose_list_2,
+                       pcl::visualization::PCLVisualizer::Ptr &visualizer);
+  bool displayPose(const std::vector<Eigen::Matrix4d> &true_poses);
 
 private:
   structureFromMotionConfig config_;

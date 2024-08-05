@@ -6,7 +6,7 @@ project(camera_tool VERSION 1.0)
 # 设置C++标准
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
-
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_BUILD_TYPE Debug)
 set(CMAKE_C_FLAGS_DEBUG "-g")
 set(CMAKE_CXX_FLAGS_DEBUG "-g")
@@ -44,6 +44,7 @@ link_directories(
 )
 # 添加子目录
 add_subdirectory(tools)
+add_subdirectory(evaluate_tool) 
 add_subdirectory(camera_model)
 add_subdirectory(calibration_model)
 add_subdirectory(factor)

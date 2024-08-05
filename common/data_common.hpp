@@ -28,6 +28,13 @@ struct Pose3d {
     return result;
   }
 
+  Eigen::Matrix4d convertMat4d() const {
+    Eigen::Matrix4d mat(Eigen::Matrix4d::Identity());
+    mat.block<3, 3>(0, 0) = q.toRotationMatrix();
+    mat.block<3, 1>(0, 3) = p;
+    return mat;
+  }
+
   Pose3d operator*(const Pose3d &other) const {
     Pose3d result;
     result.q = q * other.q;

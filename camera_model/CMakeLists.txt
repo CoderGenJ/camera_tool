@@ -1,4 +1,5 @@
 #  设置子目录的源文件
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
 set(CAMERA_MODEL_SOURCE camera_model.cpp )
 #  创建一个库或者可执行文件
 add_library(camera_model ${CAMERA_MODEL_SOURCE})

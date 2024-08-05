@@ -25,6 +25,7 @@ int main() {
   SFM::structureFromMotion sfm(sfm_config);
   // 3.插入marker的数据到sfm中
   bool actul_data = false;
+  std::vector<Eigen::Matrix4d> T_map_cam_poses;
   if (actul_data) {
     std::string img_dir = "";
     std::vector<std::string> file_paths;
@@ -53,7 +54,7 @@ int main() {
     data_gner_config.pose_num = 20;
     data_gen::SfmDataGenerator sfm_data_gner(data_gner_config);
     std::vector<MarkerDetector::MarkerData> marker_datas;
-    sfm_data_gner.generateData(marker_datas);
+    sfm_data_gner.generateData(marker_datas, &T_map_cam_poses);
     std::cout << "marker img number:" << marker_datas.size() << std::endl;
     // 2.插入graph
     for (const auto &marker_data : marker_datas) {
@@ -62,6 +63,7 @@ int main() {
   }
   // 4.处理sfm
   sfm.optiPoseGraph();
+  sfm.displayPose(T_map_cam_poses);
   sfm.constructMap();
   // sfm.fullBundleAdjustment();
   // 5.[TODO] 评估结果

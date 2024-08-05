@@ -65,8 +65,13 @@ public:
       const std::vector<std::pair<int, std::vector<Eigen::Vector2d>>>
           &project_pt,
       int w, int h, const std::string &save_path);
-  //生成marker数据
-  void generateData(std::vector<MarkerDetector::MarkerData> &marker_datas);
+
+  /// @brief 输出marker图片2D坐标以及pose
+  ///  @param   output_marker_pose_ptr
+  ///  输出图中有marker投影的图片对应的pose,T_map_cam
+  void
+  generateData(std::vector<MarkerDetector::MarkerData> &marker_datas,
+               std::vector<Eigen::Matrix4d> *output_marker_pose_ptr = nullptr);
 
 private:
   SfmDataGeneratorConfig config_;
