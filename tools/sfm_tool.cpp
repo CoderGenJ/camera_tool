@@ -63,8 +63,8 @@ int main() {
   }
   // 4.处理sfm
   sfm.optiPoseGraph();
-  sfm.displayPose(T_map_cam_poses);
-  sfm.constructMap();
+  // sfm.displayPose(T_map_cam_poses);
+  // sfm.constructMap();
   // sfm.fullBundleAdjustment();
   // 5.[TODO] 评估结果
   return 0;

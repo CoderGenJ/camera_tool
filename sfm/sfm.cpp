@@ -31,9 +31,12 @@ void structureFromMotion::insertMarkerData(
     co_vis_[id].push_back(img_node.index);
 
     Eigen::Matrix4d T_cam_board = Eigen::Matrix4d::Identity();
-    if (!pnp_sovler_ptr_->solvePnPOpencv(pairs, T_cam_board)) {
+    if (!pnp_sovler_ptr_->solvePnPOpencv(pairs, T_cam_board) ||
+        T_cam_board(0, 3) > 10) {
       std::cout << "index:" << img_node.index << " pnp failed" << std::endl;
       continue;
+    } else {
+      std::cout << "Pnp rlt \n:" << T_cam_board << std::endl;
     }
     MarkerImgItem marker_img_item;
     for (size_t j = 0; j < board_corners_.size(); ++j) {
@@ -130,6 +133,7 @@ bool structureFromMotion::buildOptimizationProblem(ceres::Problem *problem) {
         continue;
       }
       const auto &T_a_board = a_marker_iterm.at(a_index).pose;
+      // std::cout << "T_a_board:" << T_a_board.convertMat4d() << std::endl;
       for (size_t j = i + 1; j < co_vis_iter->second.size(); ++j) {
         auto &b_node = img_nodes_.at(j);
         const auto &b_marker_iterm = a_node.marker_items;
@@ -138,20 +142,28 @@ bool structureFromMotion::buildOptimizationProblem(ceres::Problem *problem) {
           continue;
         }
         const auto &T_b_board = b_marker_iterm.at(b_index).pose;
-        auto T_board_b = T_b_board.inverse();
-        auto T_a_b_mearured = T_a_board * T_board_b;
+        auto T_board_b = T_b_board.convertMat4d().inverse();
+        data_common::Pose3d T_a_b_mearured(T_a_board.convertMat4d() *
+                                           T_board_b);
+
+        // std::cout << "T_a_b_mearured:" << T_a_b_mearured.convertMat4d()
+        //           << std::endl;
+
         ceres::CostFunction *cost_function =
             ceres_factor::Pose3dErrorFactor::Create(T_a_b_mearured,
                                                     sqrt_information);
-        problem->AddResidualBlock(cost_function, loss_function,
-                                  a_node.T_map_current.p.data(),
-                                  a_node.T_map_current.q.coeffs().data(),
-                                  b_node.T_map_current.p.data(),
-                                  b_node.T_map_current.q.coeffs().data());
-        problem->SetParameterization(a_node.T_map_current.q.coeffs().data(),
-                                     quaternion_local_parameterization);
-        problem->SetParameterization(b_node.T_map_current.q.coeffs().data(),
-                                     quaternion_local_parameterization);
+        problem->AddResidualBlock(
+            cost_function, loss_function,
+            img_nodes_.at(i).T_map_current.p.data(),
+            img_nodes_.at(i).T_map_current.q.coeffs().data(),
+            img_nodes_.at(j).T_map_current.p.data(),
+            img_nodes_.at(j).T_map_current.q.coeffs().data());
+        problem->SetParameterization(
+            img_nodes_.at(i).T_map_current.q.coeffs().data(),
+            quaternion_local_parameterization);
+        problem->SetParameterization(
+            img_nodes_.at(j).T_map_current.q.coeffs().data(),
+            quaternion_local_parameterization);
       }
     }
   }
@@ -226,16 +238,15 @@ bool structureFromMotion::comparePoseList(
     for (size_t i = 0; i < pose_list_1.size(); ++i) {
       Eigen::Matrix4d T_pose_diff =
           pose_list_1.at(i).inverse() * pose_list_2.at(i);
-      std::cout << "i:" << i << " " << T_pose_diff.block<3, 1>(0, 3).transpose()
-                << std::endl;
+      std::cout << "pose_list_2.at(i):" << pose_list_2.at(i) << std::endl;
     }
   }
   visualizer->setBackgroundColor(0, 0, 0);
   // 添加全局坐标系
   visualizer->addCoordinateSystem(1.0); // 1.0表示坐标轴的长度
-  auto add_pose_in_viewer =
-      [](const std::vector<Eigen::Matrix4d> &pose_list,
-         pcl::visualization::PCLVisualizer::Ptr &viewer) -> bool {
+  auto add_pose_in_viewer = [](const std::vector<Eigen::Matrix4d> &pose_list,
+                               pcl::visualization::PCLVisualizer::Ptr &viewer,
+                               const std::string &id_prefix) -> bool {
     if (viewer == nullptr) {
       return false;
     }
@@ -247,15 +258,15 @@ bool structureFromMotion::comparePoseList(
       transform.translation() << pose.x(), pose.y(), pose.z();
       transform.rotate(q);
 
-      std::string id = "pose_" + std::to_string(i);
+      std::string id = id_prefix + std::to_string(i);
       viewer->addCoordinateSystem(0.2, transform.cast<float>(),
                                   id); // 0.2表示每个pose坐标轴的长度
     }
     return true;
   };
 
-  add_pose_in_viewer(pose_list_1, visualizer);
-  add_pose_in_viewer(pose_list_2, visualizer);
+  add_pose_in_viewer(pose_list_1, visualizer, "pose_1");
+  add_pose_in_viewer(pose_list_2, visualizer, "pose_2");
   visualizer->initCameraParameters();
   visualizer->setCameraPosition(0, 0, 15, 0, -1, 0);
   // 循环直到视图关闭
@@ -275,8 +286,6 @@ bool structureFromMotion::displayPose(
     Eigen::Matrix4d mat = img_node.T_map_current.convertMat4d();
     pose_opti.push_back(mat);
   }
-  std::cout << "pose opti:" << pose_opti.size() << std::endl;
-  std::cout << "true_poses: " << true_poses.size() << std::endl;
   return comparePoseList(true_poses, pose_opti, viewer);
 }
 
